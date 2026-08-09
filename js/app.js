@@ -101,9 +101,9 @@ async function loadTrendingGifs() {
     const grid = document.getElementById('gifGrid');
     grid.innerHTML = '<div class="gif-loading">Loading...</div>';
     try {
-        const res = await fetch('https://tenor.googleapis.com/v2/featured?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=my_chat_app&limit=30&media_filter=gif');
+        const res = await fetch('https://api.giphy.com/v1/gifs/trending?api_key=dc6zaTOxFJmzC&limit=30&rating=g');
         const data = await res.json();
-        renderGifs(data.results || []);
+        renderGifs(data.data || []);
     } catch (e) {
         grid.innerHTML = '<div class="gif-loading">Failed to load GIFs</div>';
     }
@@ -115,9 +115,9 @@ async function searchGifs() {
     const grid = document.getElementById('gifGrid');
     grid.innerHTML = '<div class="gif-loading">Searching...</div>';
     try {
-        const res = await fetch(`https://tenor.googleapis.com/v2/search?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=my_chat_app&q=${encodeURIComponent(query)}&limit=30&media_filter=gif`);
+        const res = await fetch(`https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(query)}&limit=30&rating=g`);
         const data = await res.json();
-        renderGifs(data.results || []);
+        renderGifs(data.data || []);
     } catch (e) {
         grid.innerHTML = '<div class="gif-loading">Search failed</div>';
     }
@@ -136,7 +136,7 @@ function renderGifs(gifs) {
     const grid = document.getElementById('gifGrid');
     grid.innerHTML = '';
     gifs.forEach(gif => {
-        const url = gif.media_formats?.gif?.url || gif.url;
+        const url = gif.images?.fixed_height?.url || gif.images?.original?.url;
         if (!url) return;
         const img = document.createElement('img');
         img.className = 'gif-item';
