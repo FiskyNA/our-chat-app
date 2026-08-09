@@ -239,7 +239,7 @@ body.dark mark {
 
 .reply-bar-left {
     width: 4px;
-    background: #6C5CE7;
+    background: #25D366;
     border-radius: 2px;
     margin-right: 0.5rem;
     flex-shrink: 0;
@@ -351,13 +351,14 @@ body.dark .date-separator span {
 }
 
 .message.hubby {
-    background: #6C5CE7;
-    color: #fff;
+    background: #DCF8C6;
+    color: #111;
 }
 
 .message.wifeyy {
-    background: #E17055;
-    color: #fff;
+    background: #fff;
+    color: #111;
+    border: 1px solid #e5e5e7;
 }
 
 .message-row {
@@ -419,9 +420,10 @@ body.dark .date-separator span {
 }
 
 .tick {
-    font-size: 0.65rem;
-    opacity: 0.5;
-    margin-left: 0.15rem;
+    font-size: 0.75rem;
+    opacity: 0.6;
+    margin-left: 0.2rem;
+    font-weight: 600;
 }
 
 .tick.read {
@@ -1043,6 +1045,8 @@ body.dark .theme-btn:active { background: #2c2c2e; }
 body.dark .switch-btn { border-color: #38383a; color: #a1a1a6; }
 body.dark .switch-btn:active { background: #2c2c2e; }
 body.dark .messages-area { background: #1c1c1e; }
+body.dark .message.hubby { background: #005C4B; color: #fff; }
+body.dark .message.wifeyy { background: #1F2C34; color: #fff; border-color: #38383a; }
 body.dark .loading { color: #a1a1a6; }
 body.dark .message-meta { color: rgba(255,255,255,0.5); }
 body.dark .reply-preview { background: #1a2a3a; border-bottom-color: #38383a; }
