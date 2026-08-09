@@ -397,8 +397,12 @@ function createMessageElement(id, msg) {
     if (msg.text) {
         menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); copyMsgText('${id}')">📋 Copy</button>`;
     }
-    if (isOwn && msg.type === 'text' && msg.text) {
-        menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">✏️ Edit</button>`;
+    if (isOwn && msg.type === 'text' && msg.text && msg.timestamp) {
+        const msgTime = msg.timestamp.toDate().getTime();
+        const fiveMinAgo = Date.now() - 5 * 60 * 1000;
+        if (msgTime > fiveMinAgo) {
+            menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">✏️ Edit</button>`;
+        }
     }
     if (isOwn) {
         menuItems += `<button class="dropdown-item dropdown-delete" onclick="event.stopPropagation(); deleteMessage('${id}')">🗑️ Delete</button>`;
