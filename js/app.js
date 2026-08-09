@@ -39,7 +39,7 @@ if (localStorage.getItem('darkMode') === 'true') {
 }
 
 document.getElementById('currentUser').textContent = currentName;
-document.getElementById('headerAvatar').textContent = currentUser === 'hubby' ? '&#128104;' : '&#128105;';
+document.getElementById('headerAvatar').innerHTML = currentUser === 'hubby' ? '&#128104;' : '&#128105;';
 
 // ===== MIC/SEND TOGGLE =====
 const messageInput = document.getElementById('messageInput');
