@@ -19,6 +19,7 @@ let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingSeconds = 0;
+let editingMessageId = null;
 
 if (!currentUser) {
     window.location.href = 'index.html';
@@ -68,11 +69,27 @@ db.collection('messages')
                 mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileUrl}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
             }
 
+            const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
+
             div.innerHTML = `
                 ${mediaHtml}
                 ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
-                <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}</div>
+                <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
             `;
+
+            // Only allow editing own text messages
+            if (msg.sender === currentUser && msg.type === 'text' && msg.text) {
+                div.style.cursor = 'pointer';
+                div.addEventListener('dblclick', () => openEditModal(doc.id, msg.text));
+                // Long press for mobile
+                let pressTimer;
+                div.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => openEditModal(doc.id, msg.text), 500);
+                });
+                div.addEventListener('touchend', () => clearTimeout(pressTimer));
+                div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+            }
+
             messagesArea.appendChild(div);
         });
 
@@ -314,6 +331,54 @@ document.addEventListener('click', function requestNotif() {
     }
     document.removeEventListener('click', requestNotif);
 });
+
+function openEditModal(messageId, currentText) {
+    editingMessageId = messageId;
+
+    const existing = document.getElementById('editModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'editModal';
+    modal.className = 'edit-modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+    modal.innerHTML = `
+        <div class="edit-modal">
+            <h3>Edit Message</h3>
+            <input type="text" id="editInput" value="${escapeHtml(currentText)}" autocomplete="off">
+            <div class="edit-modal-actions">
+                <button class="edit-cancel-btn" onclick="closeModal()">Cancel</button>
+                <button class="edit-save-btn" onclick="saveEdit()">Save</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    const input = document.getElementById('editInput');
+    input.focus();
+    input.setSelectionRange(input.value.length, input.value.length);
+    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') saveEdit(); });
+}
+
+function closeModal() {
+    const modal = document.getElementById('editModal');
+    if (modal) modal.remove();
+    editingMessageId = null;
+}
+
+function saveEdit() {
+    const input = document.getElementById('editInput');
+    const newText = input.value.trim();
+    if (!newText || !editingMessageId) return;
+
+    db.collection('messages').doc(editingMessageId).update({
+        text: newText,
+        edited: true
+    });
+
+    closeModal();
+}
 
 function escapeHtml(text) {
     const div = document.createElement('div');
