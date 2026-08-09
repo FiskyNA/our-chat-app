@@ -61,8 +61,6 @@
 
         <!-- Reaction Picker -->
         <div class="reaction-picker" id="reactionPicker" style="display:none;">
-            <input type="text" id="reactionInput" class="reaction-input" placeholder="Type an emoji..." maxlength="10" autocomplete="off">
-            <button class="reaction-send-btn" onclick="submitReaction()">✓</button>
             <div class="reaction-quick">
                 <button class="reaction-option" onclick="submitQuickReaction('❤️')">❤️</button>
                 <button class="reaction-option" onclick="submitQuickReaction('😂')">😂</button>
@@ -70,7 +68,9 @@
                 <button class="reaction-option" onclick="submitQuickReaction('👍')">👍</button>
                 <button class="reaction-option" onclick="submitQuickReaction('😘')">😘</button>
                 <button class="reaction-option" onclick="submitQuickReaction('😢')">😢</button>
+                <button class="reaction-option reaction-more-btn" onclick="toggleEmojiGrid(event)">➕</button>
             </div>
+            <div class="emoji-grid" id="emojiGrid" style="display:none;"></div>
         </div>
 
         <!-- Context Menu -->

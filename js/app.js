@@ -347,19 +347,41 @@ function addReaction(emoji) {
     closeReactionPicker();
 }
 
-function submitReaction() {
-    const input = document.getElementById('reactionInput');
-    const emoji = input.value.trim();
-    if (emoji && selectedMessageId) {
+function submitQuickReaction(emoji) {
+    if (selectedMessageId) {
         toggleReaction(selectedMessageId, emoji);
         closeReactionPicker();
     }
 }
 
-function submitQuickReaction(emoji) {
-    if (selectedMessageId) {
-        toggleReaction(selectedMessageId, emoji);
-        closeReactionPicker();
+const emojiGridData = [
+    '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋',
+    '😛','😜','🤪','😝','🤑','🤗','🤭','🫢','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒','🙄',
+    '😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥵','🥶','😵','🤯','🥳','🥸','😎','🤓',
+    '🧐','😕','🫤','😟','🙁','😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰','😥','😢','😭','😱','😖',
+    '😣','😞','😓','😩','😫','🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽',
+    '👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾','❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎',
+    '💔','❤️‍🔥','❤️‍🩹','💕','💞','💓','💗','💖','💘','💝','💟','🔥','⭐','🌟','💫','✨','🌈','☀️','🌤️','⛅',
+    '👨','👩','🧑','👶','👧','👦','👨‍🦰','👩‍🦰','👨‍🦱','👩‍🦱','🧔','👵','👴','👫','👬','👭','💋','👋','🤚','🖐️',
+    '👍','👎','👏','🙌','🤝','🙏','💪','🫶','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','👇','☝️','✊','👊'
+];
+
+function toggleEmojiGrid(e) {
+    e.stopPropagation();
+    const grid = document.getElementById('emojiGrid');
+    if (grid.style.display === 'none') {
+        if (grid.children.length === 0) {
+            emojiGridData.forEach(emoji => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-grid-btn';
+                btn.textContent = emoji;
+                btn.onclick = () => submitQuickReaction(emoji);
+                grid.appendChild(btn);
+            });
+        }
+        grid.style.display = 'grid';
+    } else {
+        grid.style.display = 'none';
     }
 }
 
@@ -665,6 +687,8 @@ function quickReply(id) {
 function quickReact(id) {
     selectedMessageId = id;
     const picker = document.getElementById('reactionPicker');
+    const grid = document.getElementById('emojiGrid');
+    grid.style.display = 'none';
     picker.style.display = 'flex';
 
     const msgEl = document.getElementById('msg-' + id);
@@ -673,20 +697,6 @@ function quickReact(id) {
         picker.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
         picker.style.left = '50%';
     }
-
-    const input = document.getElementById('reactionInput');
-    input.value = '';
-    setTimeout(() => {
-        input.focus();
-        input.click();
-    }, 50);
-
-    input.onkeydown = (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            submitReaction();
-        }
-    };
 
     setTimeout(() => {
         document.addEventListener('click', (e) => {
