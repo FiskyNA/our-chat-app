@@ -12,14 +12,13 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const currentUser = localStorage.getItem('chatUser');
-let lastNotificationTime = 0;
-let isFirstLoad = true;
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
 let recordingSeconds = 0;
 let editingMessageId = null;
 let isRecording = false;
+let lastRenderedIds = [];
 
 if (!currentUser) {
     window.location.href = 'index.html';
@@ -34,13 +33,6 @@ if (localStorage.getItem('darkMode') === 'true') {
 document.getElementById('currentUser').textContent =
     currentUser === 'hubby' ? 'Hubby' : 'Wifeyy';
 
-// Register service worker for notifications
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js')
-        .then(reg => console.log('SW registered'))
-        .catch(err => console.log('SW error:', err));
-}
-
 // Listen for messages in real-time
 db.collection('messages')
     .orderBy('timestamp')
@@ -51,97 +43,92 @@ db.collection('messages')
         const messagesArea = document.getElementById('messagesArea');
         const wasAtBottom = messagesArea.scrollHeight - messagesArea.scrollTop <= messagesArea.clientHeight + 100;
 
-        messagesArea.innerHTML = '';
+        const currentIds = snapshot.docs.map(d => d.id);
+        const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(lastRenderedIds);
 
-        snapshot.forEach(doc => {
-            const msg = doc.data();
-            const div = document.createElement('div');
-            const isOwn = msg.sender === currentUser;
-            div.classList.add('message', isOwn ? 'own' : 'other', msg.sender);
+        if (idsChanged) {
+            messagesArea.innerHTML = '';
+            lastRenderedIds = currentIds;
 
-            const time = msg.timestamp
-                ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                : '';
-
-            // Handle deleted messages
-            if (msg.deleted) {
-                const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
-                div.innerHTML = `
-                    <div class="deleted-msg">
-                        <span class="deleted-icon">&#128465;</span>
-                        This message was deleted by ${deletedBy}
-                    </div>
-                    <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}</div>
-                `;
+            snapshot.forEach(doc => {
+                const msg = doc.data();
+                const div = createMessageElement(doc.id, msg);
                 messagesArea.appendChild(div);
-                return;
-            }
-
-            let mediaHtml = '';
-
-            if (msg.type === 'image' && msg.fileData) {
-                mediaHtml = `<div class="message-media"><img src="${msg.fileData}" onclick="openLightbox(this.src)" alt="photo"></div>`;
-            } else if (msg.type === 'video' && msg.fileData) {
-                mediaHtml = `<div class="message-media"><video src="${msg.fileData}" controls preload="metadata"></video></div>`;
-            } else if (msg.type === 'audio' && msg.fileData) {
-                mediaHtml = `<div class="message-media"><audio src="${msg.fileData}" controls preload="metadata"></audio></div>`;
-            } else if (msg.type === 'file' && msg.fileData) {
-                const icon = getFileIcon(msg.fileName);
-                mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileData}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
-            }
-
-            const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
-
-            let actionBtns = '';
-            if (isOwn) {
-                if (msg.type === 'text' && msg.text) {
-                    actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${doc.id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`;
+            });
+        } else {
+            // Update existing messages in place (for edits/deletes)
+            snapshot.forEach(doc => {
+                const msg = doc.data();
+                const existing = document.getElementById('msg-' + doc.id);
+                if (existing) {
+                    const updated = createMessageElement(doc.id, msg);
+                    existing.replaceWith(updated);
                 }
-                actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${doc.id}')">&#128465;</button>`;
-            }
+            });
+        }
 
-            div.innerHTML = `
-                <div class="message-row">
-                    ${mediaHtml}
-                    ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
-                    ${actionBtns}
-                </div>
-                <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
-            `;
-
-            messagesArea.appendChild(div);
-        });
-
-        if (wasAtBottom || isFirstLoad) {
+        if (wasAtBottom) {
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
-
-        if (!isFirstLoad && snapshot.docs.length > 0) {
-            const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-            const lastData = lastDoc.data();
-            const msgTime = lastData.timestamp ? lastData.timestamp.toMillis() : 0;
-
-            if (lastData.sender !== currentUser && msgTime > lastNotificationTime) {
-                let notifText = 'Sent a message';
-                if (lastData.type === 'image') notifText = 'Sent a photo';
-                else if (lastData.type === 'video') notifText = 'Sent a video';
-                else if (lastData.type === 'audio') notifText = 'Sent a voice message';
-                else if (lastData.type === 'file') notifText = 'Sent a file';
-                else if (lastData.text) notifText = lastData.text;
-
-                showNotification(notifText, lastData.sender);
-            }
-            lastNotificationTime = msgTime;
-        }
-
-        if (isFirstLoad && snapshot.docs.length > 0) {
-            const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-            const lastData = lastDoc.data();
-            lastNotificationTime = lastData.timestamp ? lastData.timestamp.toMillis() : 0;
-        }
-
-        isFirstLoad = false;
     });
+
+function createMessageElement(id, msg) {
+    const div = document.createElement('div');
+    div.id = 'msg-' + id;
+    const isOwn = msg.sender === currentUser;
+    div.classList.add('message', isOwn ? 'own' : 'other', msg.sender);
+
+    const time = msg.timestamp
+        ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+
+    // Handle deleted messages
+    if (msg.deleted) {
+        const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
+        div.innerHTML = `
+            <div class="deleted-msg">
+                <span class="deleted-icon">&#128465;</span>
+                This message was deleted by ${deletedBy}
+            </div>
+            <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}</div>
+        `;
+        return div;
+    }
+
+    let mediaHtml = '';
+
+    if (msg.type === 'image' && msg.fileData) {
+        mediaHtml = `<div class="message-media"><img src="${msg.fileData}" onclick="openLightbox(this.src)" alt="photo"></div>`;
+    } else if (msg.type === 'video' && msg.fileData) {
+        mediaHtml = `<div class="message-media"><video src="${msg.fileData}" controls preload="metadata"></video></div>`;
+    } else if (msg.type === 'audio' && msg.fileData) {
+        mediaHtml = `<div class="message-media"><audio src="${msg.fileData}" controls preload="metadata"></audio></div>`;
+    } else if (msg.type === 'file' && msg.fileData) {
+        const icon = getFileIcon(msg.fileName);
+        mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileData}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
+    }
+
+    const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
+
+    let actionBtns = '';
+    if (isOwn) {
+        if (msg.type === 'text' && msg.text) {
+            actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`;
+        }
+        actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${id}')">&#128465;</button>`;
+    }
+
+    div.innerHTML = `
+        <div class="message-row">
+            ${mediaHtml}
+            ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
+            ${actionBtns}
+        </div>
+        <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
+    `;
+
+    return div;
+}
 
 // Send text message
 function sendMessage() {
@@ -414,54 +401,6 @@ function toggleTheme() {
     const isDark = document.body.classList.contains('dark');
     localStorage.setItem('darkMode', isDark);
     document.getElementById('themeBtn').innerHTML = isDark ? '&#9728;' : '&#9790;';
-}
-
-function showNotification(text, sender) {
-    const name = sender === 'hubby' ? 'Hubby' : 'Wifeyy';
-
-    // Play notification sound
-    try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.frequency.value = 800;
-        oscillator.type = 'sine';
-        gainNode.gain.value = 0.3;
-        oscillator.start();
-        setTimeout(() => {
-            oscillator.stop();
-            audioCtx.close();
-        }, 150);
-    } catch (e) {}
-
-    // Browser notification
-    if (Notification.permission === 'granted') {
-        const notif = new Notification(`${name} sent a message`, {
-            body: text,
-            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💌</text></svg>',
-            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💌</text></svg>',
-            vibrate: [200, 100, 200],
-            tag: 'chat-message',
-            renotify: true
-        });
-
-        notif.onclick = () => {
-            window.focus();
-            notif.close();
-        };
-    }
-
-    // Also try to vibrate the device
-    if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200]);
-    }
-}
-
-// Request notification permission immediately
-if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
 }
 
 function openEditModal(messageId, currentText) {
