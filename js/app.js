@@ -25,6 +25,12 @@ if (!currentUser) {
     window.location.href = 'index.html';
 }
 
+// Load dark mode preference
+if (localStorage.getItem('darkMode') === 'true') {
+    document.body.classList.add('dark');
+    document.getElementById('themeBtn').innerHTML = '&#9728;';
+}
+
 document.getElementById('currentUser').textContent =
     currentUser === 'hubby' ? 'Hubby' : 'Wifeyy';
 
@@ -380,6 +386,13 @@ function openLightbox(url) {
 function switchUser() {
     localStorage.removeItem('chatUser');
     window.location.href = 'index.html';
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('dark');
+    const isDark = document.body.classList.contains('dark');
+    localStorage.setItem('darkMode', isDark);
+    document.getElementById('themeBtn').innerHTML = isDark ? '&#9728;' : '&#9790;';
 }
 
 function showNotification(text, sender) {

@@ -15,7 +15,10 @@
         <div class="chat-header">
             <span class="header-user" id="currentUser"></span>
             <span class="header-title">Our Chat</span>
-            <button class="switch-btn" onclick="switchUser()">Switch</button>
+            <div class="header-actions">
+                <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
+                <button class="switch-btn" onclick="switchUser()">Switch</button>
+            </div>
         </div>
         <div class="messages-area" id="messagesArea">
             <div class="loading" id="loading">Loading messages...</div>

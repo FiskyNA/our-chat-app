@@ -29,6 +29,11 @@
     </div>
 
     <script>
+        // Load dark mode preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark');
+        }
+
         function selectUser(user) {
             localStorage.setItem('chatUser', user);
             window.location.href = 'chat.html';
