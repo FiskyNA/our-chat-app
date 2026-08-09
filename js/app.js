@@ -421,9 +421,9 @@ function createMessageElement(id, msg) {
     }
 
     div.innerHTML = `
+        ${replyHtml}
         <div class="message-row">
             ${mediaHtml}
-            ${replyHtml}
             ${msg.text ? `<div class="message-text" data-full="${escapeHtml(msg.text).replace(/"/g, '&quot;')}">${formatText(msg.text)}</div>` : ''}
         </div>
         <div class="link-preview-container"></div>

@@ -624,21 +624,22 @@ body.dark .date-separator span {
     opacity: 0.6;
 }
 
-/* Reply in message */
+/* Reply in message - WhatsApp style */
 .msg-reply {
-    background: rgba(255,255,255,0.15);
-    border-left: 3px solid #06cf9c;
-    padding: 0.3rem 0.5rem;
+    background: rgba(255,255,255,0.1);
+    border-left: 4px solid #06cf9c;
+    padding: 6px 10px;
     border-radius: 6px;
-    margin-bottom: 0.3rem;
-    font-size: 0.75rem;
+    margin-bottom: 4px;
+    font-size: 0.8rem;
     cursor: pointer;
 }
 
 .msg-reply-name {
-    font-weight: 600;
+    font-weight: 700;
     color: #06cf9c;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    margin-bottom: 2px;
 }
 
 .msg-reply-text {
@@ -646,6 +647,11 @@ body.dark .date-separator span {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-size: 0.78rem;
+}
+
+body.dark .msg-reply {
+    background: rgba(255,255,255,0.06);
 }
 
 .edited-label {
