@@ -546,7 +546,7 @@ const emojiGridData = [
 
 function toggleEmojiGrid(e) {
     e.stopPropagation();
-    const grid = document.getElementById('emojiGrid');
+    const grid = document.getElementById('reactEmojiGrid');
     if (grid.style.display === 'none') {
         if (grid.children.length === 0) {
             emojiGridData.forEach(emoji => {
@@ -865,7 +865,7 @@ function quickReply(id) {
 function quickReact(id) {
     selectedMessageId = id;
     const picker = document.getElementById('reactionPicker');
-    const grid = document.getElementById('emojiGrid');
+    const grid = document.getElementById('reactEmojiGrid');
     grid.style.display = 'none';
     picker.style.display = 'flex';
 
