@@ -312,76 +312,32 @@ db.collection('messages')
         const wasAtBottom = messagesArea.scrollHeight - messagesArea.scrollTop <= messagesArea.clientHeight + 100;
 
         const currentIds = snapshot.docs.map(d => d.id);
-
-        // Find new and removed message IDs
         const newIds = currentIds.filter(id => !lastRenderedIds.includes(id));
         const removedIds = lastRenderedIds.filter(id => !currentIds.includes(id));
+        const contentChanged = newIds.length > 0 || removedIds.length > 0;
 
-        if (newIds.length > 0 || removedIds.length > 0) {
-            // Remove deleted messages
-            removedIds.forEach(id => {
-                const el = document.getElementById('msg-' + id);
-                if (el) el.remove();
-                // Also remove date separator if it was before this message
-                const prev = el ? el.previousElementSibling : null;
-                if (prev && prev.classList.contains('date-separator')) {
-                    prev.remove();
-                }
-            });
+        if (contentChanged) {
+            // Full re-render only when messages are added/removed
+            messagesArea.innerHTML = '';
+            lastRenderedIds = currentIds;
 
-            // Add new messages
             let prevMsg = null;
-            const prevDocId = newIds.length > 0 ? currentIds[currentIds.indexOf(newIds[0]) - 1] : null;
-            if (prevDocId) {
-                const prevEl = document.getElementById('msg-' + prevDocId);
-                if (prevEl) prevMsg = prevEl._msgData;
-            }
-
-            newIds.forEach(id => {
-                const doc = snapshot.docs.find(d => d.id === id);
-                if (!doc) return;
+            snapshot.forEach(doc => {
                 const msg = doc.data();
 
                 if (shouldShowDateSeparator(msg, prevMsg)) {
                     const sep = document.createElement('div');
                     sep.className = 'date-separator';
                     sep.innerHTML = `<span>${getDateLabel(msg.timestamp)}</span>`;
-
-                    // Insert at correct position
-                    const nextMsgIndex = currentIds.indexOf(id);
-                    let insertBefore = null;
-                    for (let i = nextMsgIndex + 1; i < currentIds.length; i++) {
-                        const nextEl = document.getElementById('msg-' + currentIds[i]);
-                        if (nextEl) { insertBefore = nextEl; break; }
-                    }
-                    if (insertBefore) {
-                        messagesArea.insertBefore(sep, insertBefore);
-                    } else {
-                        messagesArea.appendChild(sep);
-                    }
+                    messagesArea.appendChild(sep);
                 }
 
-                const div = createMessageElement(id, msg);
-
-                // Insert at correct position
-                const nextMsgIndex = currentIds.indexOf(id);
-                let insertBefore = null;
-                for (let i = nextMsgIndex + 1; i < currentIds.length; i++) {
-                    const nextEl = document.getElementById('msg-' + currentIds[i]);
-                    if (nextEl) { insertBefore = nextEl; break; }
-                }
-                if (insertBefore) {
-                    messagesArea.insertBefore(div, insertBefore);
-                } else {
-                    messagesArea.appendChild(div);
-                }
-
+                const div = createMessageElement(doc.id, msg);
+                messagesArea.appendChild(div);
                 prevMsg = msg;
             });
-
-            lastRenderedIds = currentIds;
         } else {
-            // Just update existing messages in place (reactions, read status, etc.)
+            // Update existing messages in place (reactions, read status, etc.)
             snapshot.forEach(doc => {
                 const msg = doc.data();
                 const existing = document.getElementById('msg-' + doc.id);
@@ -396,7 +352,7 @@ db.collection('messages')
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
-        // Mark received messages as read (blue ticks)
+        // Mark received messages as read
         markMessagesAsRead(snapshot);
 
         // Show notification for new messages from other user
@@ -409,7 +365,6 @@ db.collection('messages')
                     showNotification(senderName, lastMsg.text || '📎 Attachment');
                 }
             }
-        }
         }
     });
 
