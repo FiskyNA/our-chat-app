@@ -18,6 +18,8 @@
                 <span class="header-title">Our Chat</span>
             </div>
             <div class="header-actions">
+                <button class="call-btn" onclick="startCall('audio')" title="Voice call">📞</button>
+                <button class="call-btn" onclick="startCall('video')" title="Video call">📹</button>
                 <button class="search-btn" onclick="toggleSearch()" title="Search messages">&#128269;</button>
                 <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
                 <button class="switch-btn" onclick="switchUser()">Switch</button>
@@ -28,6 +30,16 @@
         <div class="search-bar" id="searchBar" style="display:none;">
             <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
             <button class="search-close-btn" onclick="toggleSearch()">✕</button>
+        </div>
+
+        <!-- Pinned Message Bar -->
+        <div class="pinned-bar" id="pinnedBar" style="display:none;" onclick="scrollToPinned()">
+            <span class="pinned-icon">📌</span>
+            <div class="pinned-info">
+                <span class="pinned-by" id="pinnedBy"></span>
+                <span class="pinned-text" id="pinnedText"></span>
+            </div>
+            <button class="pinned-unpin" onclick="event.stopPropagation(); unpinMessage()">✕</button>
         </div>
 
         <!-- Reply Preview -->
@@ -82,13 +94,6 @@
             <div class="emoji-grid" id="reactEmojiGrid" style="display:none;"></div>
         </div>
 
-        <!-- Context Menu -->
-        <div class="context-menu" id="contextMenu" style="display:none;">
-            <button class="context-item" onclick="copyMessageText()">&#128203; Copy</button>
-            <button class="context-item" onclick="startReply()">&#128172; Reply</button>
-            <button class="context-item" onclick="showReactionPicker()">&#128150; React</button>
-        </div>
-
         <!-- Recording Indicator -->
         <div class="recording-indicator" id="recordingIndicator" style="display:none;">
             <span class="rec-dot"></span> Recording... <span id="recTimer">0:00</span> — Release to send
@@ -96,6 +101,35 @@
 
         <!-- Toast -->
         <div class="toast" id="toast" style="display:none;"></div>
+
+        <!-- Call Overlay -->
+        <div class="call-overlay" id="callOverlay" style="display:none;">
+            <div class="call-content">
+                <div class="call-avatar" id="callAvatar">👤</div>
+                <div class="call-name" id="callName"></div>
+                <div class="call-status" id="callStatus">Calling...</div>
+                <div class="call-timer" id="callTimer" style="display:none;">00:00</div>
+                <video id="remoteVideo" class="remote-video" style="display:none;" autoplay playsinline></video>
+                <div class="call-actions">
+                    <button class="call-action-btn call-mute" id="callMuteBtn" onclick="toggleMute()">🎤</button>
+                    <button class="call-action-btn call-end" onclick="endCall()">📞</button>
+                    <button class="call-action-btn call-switch-cam" id="callSwitchBtn" onclick="switchCamera()" style="display:none;">🔄</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Incoming Call -->
+        <div class="incoming-call" id="incomingCall" style="display:none;">
+            <div class="incoming-call-content">
+                <div class="incoming-call-avatar" id="incomingCaller">👤</div>
+                <div class="incoming-call-name" id="incomingCallerName"></div>
+                <div class="incoming-call-type" id="incomingCallType">Incoming call...</div>
+                <div class="incoming-call-actions">
+                    <button class="incoming-decline" onclick="declineCall()">✕</button>
+                    <button class="incoming-accept" onclick="acceptCall()">📞</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
