@@ -633,6 +633,8 @@ body.dark .date-separator span {
     margin-bottom: 4px;
     font-size: 0.8rem;
     cursor: pointer;
+    display: block;
+    width: 100%;
 }
 
 .msg-reply-name {
