@@ -55,6 +55,20 @@ db.collection('messages')
                 ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '';
 
+            // Handle deleted messages
+            if (msg.deleted) {
+                const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
+                div.innerHTML = `
+                    <div class="deleted-msg">
+                        <span class="deleted-icon">&#128465;</span>
+                        This message was deleted by ${deletedBy}
+                    </div>
+                    <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}</div>
+                `;
+                messagesArea.appendChild(div);
+                return;
+            }
+
             let mediaHtml = '';
 
             if (msg.type === 'image' && msg.fileData) {
@@ -69,15 +83,21 @@ db.collection('messages')
             }
 
             const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
-            const editBtn = msg.sender === currentUser && msg.type === 'text' && msg.text
-                ? `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${doc.id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`
-                : '';
+            const isOwn = msg.sender === currentUser;
+
+            let actionBtns = '';
+            if (isOwn) {
+                if (msg.type === 'text' && msg.text) {
+                    actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${doc.id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`;
+                }
+                actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${doc.id}')">&#128465;</button>`;
+            }
 
             div.innerHTML = `
                 <div class="message-row">
                     ${mediaHtml}
                     ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
-                    ${editBtn}
+                    ${actionBtns}
                 </div>
                 <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
             `;
@@ -472,6 +492,20 @@ function saveEdit() {
     });
 
     closeModal();
+}
+
+function deleteMessage(messageId) {
+    if (!confirm('Delete this message?')) return;
+
+    db.collection('messages').doc(messageId).update({
+        deleted: true,
+        deletedBy: currentUser,
+        text: '',
+        fileData: null,
+        fileName: null,
+        fileSize: null,
+        type: 'deleted'
+    });
 }
 
 function escapeHtml(text) {

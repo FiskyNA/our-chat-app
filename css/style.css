@@ -212,6 +212,47 @@ html, body {
     background: rgba(255,255,255,0.2);
 }
 
+.msg-delete-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.2rem 0.3rem;
+    border-radius: 6px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+    line-height: 1;
+    min-width: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.msg-delete-btn:active {
+    color: #ff3b30;
+    background: rgba(255,255,255,0.2);
+}
+
+.deleted-msg {
+    font-style: italic;
+    opacity: 0.7;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.deleted-icon {
+    font-style: normal;
+}
+
+.message.hubby .deleted-msg,
+.message.wifeyy .deleted-msg {
+    color: #fff;
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(6px); }
     to { opacity: 1; transform: translateY(0); }
