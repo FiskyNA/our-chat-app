@@ -12,6 +12,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 const currentUser = localStorage.getItem('chatUser');
+const otherUser = currentUser === 'hubby' ? 'wifeyy' : 'hubby';
+const currentName = currentUser === 'hubby' ? 'Hubby' : 'Wifeyy';
+const otherName = currentUser === 'hubby' ? 'Wifeyy' : 'Hubby';
+
 let mediaRecorder = null;
 let audioChunks = [];
 let recordingTimer = null;
@@ -19,21 +23,104 @@ let recordingSeconds = 0;
 let editingMessageId = null;
 let isRecording = false;
 let lastRenderedIds = [];
+let selectedMessageId = null;
+let selectedMessageData = null;
+let replyingTo = null;
+let typingTimeout = null;
+let contextMenuTimeout = null;
 
 if (!currentUser) {
     window.location.href = 'index.html';
 }
 
-// Load dark mode preference
+// Load dark mode
 if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark');
     document.getElementById('themeBtn').innerHTML = '&#9728;';
 }
 
-document.getElementById('currentUser').textContent =
-    currentUser === 'hubby' ? 'Hubby' : 'Wifeyy';
+document.getElementById('currentUser').textContent = currentName;
 
-// Listen for messages in real-time
+// ===== EMOJI PICKER =====
+const emojis = ['😀','😂','😍','🥰','😘','😭','🥺','🔥','❤️','💕','👍','👋','🎉','✨','💪','🙌','😏','🤔','😢','😡','🥺','😱','🤗','😴','🤮','🤧','💀','👀','🤡','💎','🌹','🦋','🌈','⭐','💫','🎵','📸','💌','🧸'];
+
+function initEmojiPicker() {
+    const grid = document.getElementById('emojiGrid');
+    emojis.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.className = 'emoji-item';
+        btn.textContent = emoji;
+        btn.onclick = () => insertEmoji(emoji);
+        grid.appendChild(btn);
+    });
+}
+
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    closeContextMenu();
+    closeReactionPicker();
+}
+
+function insertEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
+}
+
+// ===== TYPING INDICATOR =====
+let typingRef = null;
+
+function initTyping() {
+    typingRef = db.collection('presence').doc(currentUser);
+    typingRef.set({ typing: false, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+}
+
+function setTyping(isTyping) {
+    if (typingRef) {
+        typingRef.set({ typing: isTyping, lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    }
+}
+
+function watchTyping() {
+    db.collection('presence').doc(otherUser).onSnapshot(doc => {
+        const data = doc.data();
+        const indicator = document.getElementById('typingIndicator');
+        if (data && data.typing) {
+            indicator.textContent = `${otherName} is typing...`;
+        } else {
+            indicator.textContent = '';
+        }
+    });
+}
+
+document.getElementById('messageInput').addEventListener('input', () => {
+    setTyping(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => setTyping(false), 2000);
+});
+
+// ===== DATE SEPARATORS =====
+function getDateLabel(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: date.getFullYear() !== today.getFullYear() ? 'numeric' : undefined });
+}
+
+function shouldShowDateSeparator(current, previous) {
+    if (!previous) return true;
+    if (!current || !current.timestamp || !previous.timestamp) return false;
+    return current.timestamp.toDate().toDateString() !== previous.timestamp.toDate().toDateString();
+}
+
+// ===== MESSAGE RENDERING =====
 db.collection('messages')
     .orderBy('timestamp')
     .onSnapshot(snapshot => {
@@ -50,13 +137,22 @@ db.collection('messages')
             messagesArea.innerHTML = '';
             lastRenderedIds = currentIds;
 
+            let prevMsg = null;
             snapshot.forEach(doc => {
                 const msg = doc.data();
+
+                if (shouldShowDateSeparator(msg, prevMsg)) {
+                    const sep = document.createElement('div');
+                    sep.className = 'date-separator';
+                    sep.innerHTML = `<span>${getDateLabel(msg.timestamp)}</span>`;
+                    messagesArea.appendChild(sep);
+                }
+
                 const div = createMessageElement(doc.id, msg);
                 messagesArea.appendChild(div);
+                prevMsg = msg;
             });
         } else {
-            // Update existing messages in place (for edits/deletes)
             snapshot.forEach(doc => {
                 const msg = doc.data();
                 const existing = document.getElementById('msg-' + doc.id);
@@ -82,7 +178,19 @@ function createMessageElement(id, msg) {
         ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : '';
 
-    // Handle deleted messages
+    // Long press for context menu
+    let pressTimer;
+    div.addEventListener('touchstart', (e) => {
+        pressTimer = setTimeout(() => showContextMenu(e, id, msg), 500);
+    });
+    div.addEventListener('touchend', () => clearTimeout(pressTimer));
+    div.addEventListener('touchmove', () => clearTimeout(pressTimer));
+    div.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showContextMenu(e, id, msg);
+    });
+
+    // Deleted messages
     if (msg.deleted) {
         const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
         div.innerHTML = `
@@ -96,7 +204,6 @@ function createMessageElement(id, msg) {
     }
 
     let mediaHtml = '';
-
     if (msg.type === 'image' && msg.fileData) {
         mediaHtml = `<div class="message-media"><img src="${msg.fileData}" onclick="openLightbox(this.src)" alt="photo"></div>`;
     } else if (msg.type === 'video' && msg.fileData) {
@@ -106,6 +213,18 @@ function createMessageElement(id, msg) {
     } else if (msg.type === 'file' && msg.fileData) {
         const icon = getFileIcon(msg.fileName);
         mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileData}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
+    }
+
+    // Reply preview in message
+    let replyHtml = '';
+    if (msg.replyTo) {
+        const replyName = msg.replyTo.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
+        replyHtml = `
+            <div class="msg-reply">
+                <div class="msg-reply-name">${replyName}</div>
+                <div class="msg-reply-text">${escapeHtml(msg.replyTo.text || (msg.replyTo.type === 'image' ? '📷 Photo' : msg.replyTo.type === 'audio' ? '🎤 Voice' : msg.replyTo.type === 'video' ? '🎬 Video' : '📎 File'))}</div>
+            </div>
+        `;
     }
 
     const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
@@ -118,40 +237,179 @@ function createMessageElement(id, msg) {
         actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${id}')">&#128465;</button>`;
     }
 
+    // Reactions
+    let reactionsHtml = '';
+    if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+        const reactionCounts = {};
+        for (const [user, emoji] of Object.entries(msg.reactions)) {
+            if (!reactionCounts[emoji]) reactionCounts[emoji] = { count: 0, byMe: false };
+            reactionCounts[emoji].count++;
+            if (user === currentUser) reactionCounts[emoji].byMe = true;
+        }
+        reactionsHtml = '<div class="msg-reactions">';
+        for (const [emoji, data] of Object.entries(reactionCounts)) {
+            reactionsHtml += `<button class="msg-reaction ${data.byMe ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReaction('${id}', '${emoji}')">${emoji} ${data.count > 1 ? data.count : ''}</button>`;
+        }
+        reactionsHtml += '</div>';
+    }
+
     div.innerHTML = `
         <div class="message-row">
             ${mediaHtml}
+            ${replyHtml}
             ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
             ${actionBtns}
         </div>
+        ${reactionsHtml}
         <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
     `;
 
     return div;
 }
 
-// Send text message
+// ===== CONTEXT MENU =====
+function showContextMenu(e, id, msg) {
+    closeContextMenu();
+    selectedMessageId = id;
+    selectedMessageData = msg;
+
+    const menu = document.getElementById('contextMenu');
+    menu.style.display = 'block';
+
+    let x, y;
+    if (e.touches) {
+        x = e.touches[0].clientX;
+        y = e.touches[0].clientY;
+    } else {
+        x = e.clientX;
+        y = e.clientY;
+    }
+
+    menu.style.left = Math.min(x, window.innerWidth - 160) + 'px';
+    menu.style.top = Math.min(y, window.innerHeight - 120) + 'px';
+
+    contextMenuTimeout = setTimeout(closeContextMenu, 3000);
+}
+
+function closeContextMenu() {
+    document.getElementById('contextMenu').style.display = 'none';
+    clearTimeout(contextMenuTimeout);
+}
+
+function copyMessageText() {
+    if (!selectedMessageData || !selectedMessageData.text) {
+        closeContextMenu();
+        return;
+    }
+    navigator.clipboard.writeText(selectedMessageData.text).then(() => {
+        showToast('Copied!');
+    });
+    closeContextMenu();
+}
+
+function startReply() {
+    if (!selectedMessageData) return;
+    replyingTo = {
+        id: selectedMessageId,
+        sender: selectedMessageData.sender,
+        text: selectedMessageData.text || '',
+        type: selectedMessageData.type || 'text',
+        timestamp: selectedMessageData.timestamp
+    };
+
+    const preview = document.getElementById('replyPreview');
+    document.getElementById('replyName').textContent = selectedMessageData.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
+    document.getElementById('replyText').textContent = selectedMessageData.text || (selectedMessageData.type === 'image' ? '📷 Photo' : selectedMessageData.type === 'audio' ? '🎤 Voice' : selectedMessageData.type === 'video' ? '🎬 Video' : '📎 File');
+    preview.style.display = 'flex';
+
+    document.getElementById('messageInput').focus();
+    closeContextMenu();
+}
+
+function cancelReply() {
+    replyingTo = null;
+    document.getElementById('replyPreview').style.display = 'none';
+}
+
+// ===== REACTIONS =====
+function showReactionPicker() {
+    closeContextMenu();
+    const picker = document.getElementById('reactionPicker');
+    picker.style.display = 'flex';
+    setTimeout(() => {
+        document.addEventListener('click', closeReactionPicker, { once: true });
+    }, 100);
+}
+
+function closeReactionPicker() {
+    document.getElementById('reactionPicker').style.display = 'none';
+}
+
+function addReaction(emoji) {
+    if (!selectedMessageId) return;
+    toggleReaction(selectedMessageId, emoji);
+    closeReactionPicker();
+}
+
+function toggleReaction(messageId, emoji) {
+    const msgRef = db.collection('messages').doc(messageId);
+    msgRef.get().then(doc => {
+        const data = doc.data();
+        const reactions = data.reactions || {};
+
+        if (reactions[currentUser] === emoji) {
+            delete reactions[currentUser];
+        } else {
+            reactions[currentUser] = emoji;
+        }
+
+        msgRef.update({ reactions: reactions });
+    });
+}
+
+// ===== SEND MESSAGE =====
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
-    if (!text) return;
+    if (!text && !replyingTo) return;
 
-    db.collection('messages').add({
+    const msgData = {
         sender: currentUser,
         text: text,
         type: 'text',
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+
+    if (replyingTo) {
+        msgData.replyTo = {
+            sender: replyingTo.sender,
+            text: replyingTo.text,
+            type: replyingTo.type
+        };
+    }
+
+    db.collection('messages').add(msgData);
 
     input.value = '';
+    cancelReply();
     input.focus();
+    setTyping(false);
 }
 
 document.getElementById('messageInput').addEventListener('keypress', function(e) {
     if (e.key === 'Enter') sendMessage();
 });
 
-// File upload via click
+// Close pickers on outside click
+document.addEventListener('click', (e) => {
+    const emojiPicker = document.getElementById('emojiPicker');
+    const emojiBtn = document.getElementById('emojiBtn');
+    if (emojiPicker.style.display === 'block' && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+        emojiPicker.style.display = 'none';
+    }
+});
+
+// ===== FILE UPLOAD =====
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -169,11 +427,9 @@ function handleFile(file) {
     progressText.textContent = 'Processing...';
 
     const reader = new FileReader();
-
     reader.onprogress = (e) => {
         if (e.lengthComputable) {
-            const pct = (e.loaded / e.total) * 100;
-            progressFill.style.width = pct + '%';
+            progressFill.style.width = (e.loaded / e.total * 100) + '%';
         }
     };
 
@@ -206,32 +462,20 @@ function compressImage(dataUrl, fileName, progressEl, progressFill, progressText
     img.onload = () => {
         const canvas = document.createElement('canvas');
         let { width, height } = img;
-
         const MAX = 800;
         if (width > MAX || height > MAX) {
-            if (width > height) {
-                height = (height / width) * MAX;
-                width = MAX;
-            } else {
-                width = (width / height) * MAX;
-                height = MAX;
-            }
+            if (width > height) { height = (height / width) * MAX; width = MAX; }
+            else { width = (width / height) * MAX; height = MAX; }
         }
-
         canvas.width = width;
         canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
+        canvas.getContext('2d').drawImage(img, 0, 0, width, height);
 
         let compressed = canvas.toDataURL('image/jpeg', 0.7);
-
-        if (compressed.length > 640000) {
-            compressed = canvas.toDataURL('image/jpeg', 0.4);
-        }
+        if (compressed.length > 640000) compressed = canvas.toDataURL('image/jpeg', 0.4);
 
         progressFill.style.width = '90%';
         progressText.textContent = 'Sending...';
-
         saveToFirestore('image', compressed, fileName, compressed.length, progressEl, progressFill, progressText);
     };
     img.src = dataUrl;
@@ -241,7 +485,7 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
     progressFill.style.width = '90%';
     progressText.textContent = 'Sending...';
 
-    db.collection('messages').add({
+    const msgData = {
         sender: currentUser,
         text: '',
         type: type,
@@ -249,16 +493,23 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
         fileName: fileName,
         fileSize: formatFileSize(fileSize),
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    }).then(() => {
+    };
+
+    if (replyingTo) {
+        msgData.replyTo = {
+            sender: replyingTo.sender,
+            text: replyingTo.text,
+            type: replyingTo.type
+        };
+    }
+
+    db.collection('messages').add(msgData).then(() => {
         progressEl.style.display = 'none';
+        cancelReply();
     }).catch(err => {
-        console.error('Error saving message:', err);
         progressEl.style.display = 'none';
-        if (err.message.includes('maximum size')) {
-            alert('File is too large. Try a smaller file.');
-        } else {
-            alert('Failed to send: ' + err.message);
-        }
+        if (err.message.includes('maximum size')) alert('File is too large. Try a smaller file.');
+        else alert('Failed to send: ' + err.message);
     });
 }
 
@@ -274,7 +525,6 @@ function getFileIcon(fileName) {
         pdf: '\uD83D\uDCC4', doc: '\uD83D\uDCDD', docx: '\uD83D\uDCDD', txt: '\uD83D\uDCC4',
         zip: '\uD83D\uDDDC\uFE0F', rar: '\uD83D\uDDDC\uFE0F',
         xls: '\uD83D\uDCCA', xlsx: '\uD83D\uDCCA', csv: '\uD83D\uDCCA',
-        ppt: '\uD83D\uDCCA', pptx: '\uD83D\uDCCA',
         mp3: '\uD83C\uDFB5', wav: '\uD83C\uDFB5', ogg: '\uD83C\uDFB5', m4a: '\uD83C\uDFB5',
         mp4: '\uD83C\uDFAC', mov: '\uD83C\uDFAC', avi: '\uD83C\uDFAC', mkv: '\uD83C\uDFAC',
         jpg: '\uD83D\uDDBC\uFE0F', jpeg: '\uD83D\uDDBC\uFE0F', png: '\uD83D\uDDBC\uFE0F', gif: '\uD83D\uDDBC\uFE0F', webp: '\uD83D\uDDBC\uFE0F'
@@ -282,105 +532,78 @@ function getFileIcon(fileName) {
     return icons[ext] || '\uD83D\uDCC1';
 }
 
-// Voice recording
+// ===== VOICE RECORDING =====
 function startRecording() {
     if (isRecording) return;
-
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Voice recording not supported in this browser.');
+        alert('Voice recording not supported.');
         return;
     }
 
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            isRecording = true;
-            audioChunks = [];
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        isRecording = true;
+        audioChunks = [];
 
-            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-                ? 'audio/webm;codecs=opus'
-                : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+        const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+            ? 'audio/webm;codecs=opus'
+            : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
 
-            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+        mediaRecorder = new MediaRecorder(stream, { mimeType });
+        mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
 
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data && e.data.size > 0) {
-                    audioChunks.push(e.data);
-                }
+        mediaRecorder.onstop = () => {
+            isRecording = false;
+            stream.getTracks().forEach(t => t.stop());
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('recordingIndicator').style.display = 'none';
+            if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+            if (audioChunks.length === 0) return;
+
+            const audioBlob = new Blob(audioChunks, { type: mimeType });
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const progressEl = document.getElementById('uploadProgress');
+                const progressFill = document.getElementById('progressFill');
+                const progressText = document.getElementById('progressText');
+                progressEl.style.display = 'block';
+                progressFill.style.width = '50%';
+                progressText.textContent = 'Sending voice message...';
+                saveToFirestore('audio', reader.result, `voice_${Date.now()}.webm`, audioBlob.size, progressEl, progressFill, progressText);
             };
+            reader.readAsDataURL(audioBlob);
+        };
 
-            mediaRecorder.onstop = () => {
-                isRecording = false;
-                stream.getTracks().forEach(track => track.stop());
+        mediaRecorder.onerror = () => {
+            isRecording = false;
+            stream.getTracks().forEach(t => t.stop());
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('recordingIndicator').style.display = 'none';
+            if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+            alert('Recording failed.');
+        };
 
-                document.getElementById('micBtn').classList.remove('recording');
-                document.getElementById('recordingIndicator').style.display = 'none';
-
-                if (recordingTimer) {
-                    clearInterval(recordingTimer);
-                    recordingTimer = null;
-                }
-
-                if (audioChunks.length === 0) return;
-
-                const audioBlob = new Blob(audioChunks, { type: mimeType });
-
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    const progressEl = document.getElementById('uploadProgress');
-                    const progressFill = document.getElementById('progressFill');
-                    const progressText = document.getElementById('progressText');
-
-                    progressEl.style.display = 'block';
-                    progressFill.style.width = '50%';
-                    progressText.textContent = 'Sending voice message...';
-
-                    saveToFirestore('audio', reader.result, `voice_${Date.now()}.webm`, audioBlob.size, progressEl, progressFill, progressText);
-                };
-                reader.readAsDataURL(audioBlob);
-            };
-
-            mediaRecorder.onerror = (e) => {
-                console.error('MediaRecorder error:', e);
-                isRecording = false;
-                stream.getTracks().forEach(track => track.stop());
-                document.getElementById('micBtn').classList.remove('recording');
-                document.getElementById('recordingIndicator').style.display = 'none';
-                if (recordingTimer) {
-                    clearInterval(recordingTimer);
-                    recordingTimer = null;
-                }
-                alert('Recording failed. Please try again.');
-            };
-
-            mediaRecorder.start(100);
-
-            document.getElementById('micBtn').classList.add('recording');
-            document.getElementById('recordingIndicator').style.display = 'flex';
-
-            recordingSeconds = 0;
-            document.getElementById('recTimer').textContent = '0:00';
-            recordingTimer = setInterval(() => {
-                recordingSeconds++;
-                const min = Math.floor(recordingSeconds / 60);
-                const sec = recordingSeconds % 60;
-                document.getElementById('recTimer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
-            }, 1000);
-        })
-        .catch(err => {
-            console.error('Microphone error:', err);
-            alert('Could not access microphone. Please allow microphone permission and try again.');
-        });
+        mediaRecorder.start(100);
+        document.getElementById('micBtn').classList.add('recording');
+        document.getElementById('recordingIndicator').style.display = 'flex';
+        recordingSeconds = 0;
+        document.getElementById('recTimer').textContent = '0:00';
+        recordingTimer = setInterval(() => {
+            recordingSeconds++;
+            const min = Math.floor(recordingSeconds / 60);
+            const sec = recordingSeconds % 60;
+            document.getElementById('recTimer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+        }, 1000);
+    }).catch(() => alert('Microphone access denied.'));
 }
 
 function stopRecording(e) {
     if (e) e.preventDefault();
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-    }
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
 }
 
 document.getElementById('micBtn').addEventListener('contextmenu', e => e.preventDefault());
 
+// ===== LIGHTBOX =====
 function openLightbox(url) {
     const lb = document.createElement('div');
     lb.className = 'lightbox';
@@ -391,6 +614,15 @@ function openLightbox(url) {
     document.body.appendChild(lb);
 }
 
+// ===== TOAST =====
+function showToast(text) {
+    const toast = document.getElementById('toast');
+    toast.textContent = text;
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 1500);
+}
+
+// ===== UTILS =====
 function switchUser() {
     localStorage.removeItem('chatUser');
     window.location.href = 'index.html';
@@ -405,7 +637,6 @@ function toggleTheme() {
 
 function openEditModal(messageId, currentText) {
     editingMessageId = messageId;
-
     const existing = document.getElementById('editModal');
     if (existing) existing.remove();
 
@@ -442,12 +673,7 @@ function saveEdit() {
     const input = document.getElementById('editInput');
     const newText = input.value.trim();
     if (!newText || !editingMessageId) return;
-
-    db.collection('messages').doc(editingMessageId).update({
-        text: newText,
-        edited: true
-    });
-
+    db.collection('messages').doc(editingMessageId).update({ text: newText, edited: true });
     closeModal();
 }
 
@@ -455,7 +681,6 @@ let pendingDeleteId = null;
 
 function deleteMessage(messageId) {
     pendingDeleteId = messageId;
-
     const existing = document.getElementById('confirmModal');
     if (existing) existing.remove();
 
@@ -486,17 +711,9 @@ function closeConfirm() {
 
 function confirmDelete() {
     if (!pendingDeleteId) return;
-
     db.collection('messages').doc(pendingDeleteId).update({
-        deleted: true,
-        deletedBy: currentUser,
-        text: '',
-        fileData: null,
-        fileName: null,
-        fileSize: null,
-        type: 'deleted'
+        deleted: true, deletedBy: currentUser, text: '', fileData: null, fileName: null, fileSize: null, type: 'deleted'
     });
-
     closeConfirm();
 }
 
@@ -505,3 +722,8 @@ function escapeHtml(text) {
     div.textContent = text;
     return div.innerHTML;
 }
+
+// ===== INIT =====
+initEmojiPicker();
+initTyping();
+watchTyping();
