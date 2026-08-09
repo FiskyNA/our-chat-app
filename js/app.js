@@ -10,7 +10,6 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 const currentUser = localStorage.getItem('chatUser');
 let lastNotificationTime = 0;
@@ -52,15 +51,15 @@ db.collection('messages')
 
             let mediaHtml = '';
 
-            if (msg.type === 'image' && msg.fileUrl) {
-                mediaHtml = `<div class="message-media"><img src="${msg.fileUrl}" onclick="openLightbox('${msg.fileUrl}')" alt="photo"></div>`;
-            } else if (msg.type === 'video' && msg.fileUrl) {
-                mediaHtml = `<div class="message-media"><video src="${msg.fileUrl}" controls preload="metadata"></video></div>`;
-            } else if (msg.type === 'audio' && msg.fileUrl) {
-                mediaHtml = `<div class="message-media"><audio src="${msg.fileUrl}" controls preload="metadata"></audio></div>`;
-            } else if (msg.type === 'file' && msg.fileUrl) {
+            if (msg.type === 'image' && msg.fileData) {
+                mediaHtml = `<div class="message-media"><img src="${msg.fileData}" onclick="openLightbox(this.src)" alt="photo"></div>`;
+            } else if (msg.type === 'video' && msg.fileData) {
+                mediaHtml = `<div class="message-media"><video src="${msg.fileData}" controls preload="metadata"></video></div>`;
+            } else if (msg.type === 'audio' && msg.fileData) {
+                mediaHtml = `<div class="message-media"><audio src="${msg.fileData}" controls preload="metadata"></audio></div>`;
+            } else if (msg.type === 'file' && msg.fileData) {
                 const icon = getFileIcon(msg.fileName);
-                mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileUrl}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
+                mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileData}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
             }
 
             const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
@@ -136,61 +135,114 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
-    uploadFile(file);
+    handleFile(file);
     this.value = '';
 });
 
-function uploadFile(file) {
+function handleFile(file) {
     const progressEl = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
 
     progressEl.style.display = 'block';
-    progressFill.style.width = '0%';
-    progressText.textContent = 'Uploading...';
+    progressFill.style.width = '30%';
+    progressText.textContent = 'Processing...';
 
-    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
-    const fileRef = storage.ref(`chat-files/${fileName}`);
-    const uploadTask = fileRef.put(file);
+    const reader = new FileReader();
 
-    uploadTask.on('state_changed',
-        (snapshot) => {
-            const pct = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+    reader.onprogress = (e) => {
+        if (e.lengthComputable) {
+            const pct = (e.loaded / e.total) * 100;
             progressFill.style.width = pct + '%';
-            progressText.textContent = `Uploading ${Math.round(pct)}%`;
-        },
-        (error) => {
-            console.error('Upload error:', error);
-            progressEl.style.display = 'none';
-            alert('Upload failed: ' + error.message);
-        },
-        () => {
-            uploadTask.snapshot.ref.getDownloadURL().then(downloadURL => {
-                progressEl.style.display = 'none';
-
-                let type = 'file';
-                if (file.type.startsWith('image/')) type = 'image';
-                else if (file.type.startsWith('video/')) type = 'video';
-                else if (file.type.startsWith('audio/')) type = 'audio';
-
-                return db.collection('messages').add({
-                    sender: currentUser,
-                    text: '',
-                    type: type,
-                    fileUrl: downloadURL,
-                    fileName: file.name,
-                    fileSize: formatFileSize(file.size),
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-            }).then(() => {
-                progressEl.style.display = 'none';
-            }).catch(err => {
-                console.error('Error saving message:', err);
-                progressEl.style.display = 'none';
-                alert('Failed to save message: ' + err.message);
-            });
         }
-    );
+    };
+
+    reader.onload = () => {
+        progressFill.style.width = '70%';
+        progressText.textContent = 'Compressing...';
+
+        let type = 'file';
+        if (file.type.startsWith('image/')) type = 'image';
+        else if (file.type.startsWith('video/')) type = 'video';
+        else if (file.type.startsWith('audio/')) type = 'audio';
+
+        if (type === 'image') {
+            compressImage(reader.result, file.name, progressEl, progressFill, progressText);
+        } else {
+            saveToFirestore(type, reader.result, file.name, file.size, progressEl, progressFill, progressText);
+        }
+    };
+
+    reader.onerror = () => {
+        progressEl.style.display = 'none';
+        alert('Failed to read file.');
+    };
+
+    reader.readAsDataURL(file);
+}
+
+function compressImage(dataUrl, fileName, progressEl, progressFill, progressText) {
+    const img = new Image();
+    img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+
+        // Max dimensions
+        const MAX = 800;
+        if (width > MAX || height > MAX) {
+            if (width > height) {
+                height = (height / width) * MAX;
+                width = MAX;
+            } else {
+                width = (width / height) * MAX;
+                height = MAX;
+            }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Compress to JPEG
+        let compressed = canvas.toDataURL('image/jpeg', 0.7);
+
+        // If still too big (>500KB), compress more
+        if (compressed.length > 640000) {
+            compressed = canvas.toDataURL('image/jpeg', 0.4);
+        }
+
+        progressFill.style.width = '90%';
+        progressText.textContent = 'Sending...';
+
+        saveToFirestore('image', compressed, fileName, compressed.length, progressEl, progressFill, progressText);
+    };
+    img.src = dataUrl;
+}
+
+function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progressFill, progressText) {
+    progressFill.style.width = '90%';
+    progressText.textContent = 'Sending...';
+
+    db.collection('messages').add({
+        sender: currentUser,
+        text: '',
+        type: type,
+        fileData: fileData,
+        fileName: fileName,
+        fileSize: formatFileSize(fileSize),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).then(() => {
+        progressEl.style.display = 'none';
+    }).catch(err => {
+        console.error('Error saving message:', err);
+        progressEl.style.display = 'none';
+        if (err.message.includes('maximum size')) {
+            alert('File is too large. Try a smaller file.');
+        } else {
+            alert('Failed to send: ' + err.message);
+        }
+    });
 }
 
 function formatFileSize(bytes) {
@@ -254,9 +306,21 @@ function startRecording() {
                 if (audioChunks.length === 0) return;
 
                 const audioBlob = new Blob(audioChunks, { type: mimeType });
-                const ext = mimeType.includes('webm') ? 'webm' : 'm4a';
-                const audioFile = new File([audioBlob], `voice_${Date.now()}.${ext}`, { type: mimeType });
-                uploadFile(audioFile);
+
+                // Convert to base64
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    const progressEl = document.getElementById('uploadProgress');
+                    const progressFill = document.getElementById('progressFill');
+                    const progressText = document.getElementById('progressText');
+
+                    progressEl.style.display = 'block';
+                    progressFill.style.width = '50%';
+                    progressText.textContent = 'Sending voice message...';
+
+                    saveToFirestore('audio', reader.result, `voice_${Date.now()}.webm`, audioBlob.size, progressEl, progressFill, progressText);
+                };
+                reader.readAsDataURL(audioBlob);
             };
 
             mediaRecorder.onerror = (e) => {
