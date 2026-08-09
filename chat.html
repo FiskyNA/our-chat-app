@@ -17,14 +17,25 @@
         <div class="messages-area" id="messagesArea">
             <div class="loading" id="loading">Loading messages...</div>
         </div>
+        <div class="upload-progress" id="uploadProgress" style="display:none;">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <span class="progress-text" id="progressText">Uploading...</span>
+        </div>
         <div class="input-area">
+            <input type="file" id="fileInput" style="display:none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
+            <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">&#128206;</button>
+            <button class="mic-btn" id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Hold to record voice">&#127908;</button>
             <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
             <button class="send-btn" onclick="sendMessage()">&#10148;</button>
+        </div>
+        <div class="recording-indicator" id="recordingIndicator" style="display:none;">
+            <span class="rec-dot"></span> Recording... <span id="recTimer">0:00</span> — Release to send
         </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

@@ -96,6 +96,7 @@ body {
     display: flex;
     flex-direction: column;
     box-shadow: 0 0 40px rgba(0,0,0,0.08);
+    position: relative;
 }
 
 .chat-header {
@@ -105,6 +106,7 @@ body {
     padding: 1rem 1.5rem;
     background: #fff;
     border-bottom: 1px solid #e5e5e7;
+    z-index: 2;
 }
 
 .header-user {
@@ -151,6 +153,7 @@ body {
     padding: 2rem;
 }
 
+/* Messages */
 .message {
     max-width: 75%;
     padding: 0.8rem 1.2rem;
@@ -158,6 +161,7 @@ body {
     font-size: 0.95rem;
     line-height: 1.4;
     animation: fadeIn 0.3s ease;
+    word-wrap: break-word;
 }
 
 @keyframes fadeIn {
@@ -185,12 +189,114 @@ body {
     margin-top: 0.3rem;
 }
 
+/* Media messages */
+.message-media {
+    margin-bottom: 0.5rem;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.message-media img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: block;
+}
+
+.message-media video {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 12px;
+    display: block;
+}
+
+.message-media audio {
+    width: 100%;
+    min-width: 200px;
+    height: 40px;
+}
+
+.message-media .file-card {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 1rem;
+    background: rgba(255,255,255,0.15);
+    border-radius: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s;
+}
+
+.message.hubby .file-card:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.message.wifeyy .file-card:hover {
+    background: rgba(255,255,255,0.25);
+}
+
+.file-icon {
+    font-size: 1.8rem;
+}
+
+.file-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.file-size {
+    font-size: 0.7rem;
+    opacity: 0.7;
+}
+
+/* Upload progress */
+.upload-progress {
+    padding: 0.5rem 1.5rem;
+    background: #fff;
+    border-top: 1px solid #e5e5e7;
+}
+
+.progress-bar {
+    height: 4px;
+    background: #e5e5e7;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: #0071e3;
+    width: 0%;
+    transition: width 0.3s;
+    border-radius: 2px;
+}
+
+.progress-text {
+    font-size: 0.75rem;
+    color: #6e6e73;
+    margin-top: 0.3rem;
+    display: block;
+}
+
+/* Input area */
 .input-area {
     display: flex;
     padding: 1rem 1.5rem;
-    gap: 0.8rem;
+    gap: 0.5rem;
     background: #fff;
     border-top: 1px solid #e5e5e7;
+    align-items: center;
 }
 
 #messageInput {
@@ -208,9 +314,41 @@ body {
     border-color: #0071e3;
 }
 
+.attach-btn,
+.mic-btn {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: none;
+    background: #f5f5f7;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.attach-btn:hover,
+.mic-btn:hover {
+    background: #e5e5e7;
+}
+
+.mic-btn.recording {
+    background: #ff3b30;
+    color: #fff;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
 .send-btn {
-    width: 48px;
-    height: 48px;
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     border: none;
     background: #0071e3;
@@ -221,10 +359,63 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .send-btn:hover {
     background: #005bb5;
+}
+
+/* Recording indicator */
+.recording-indicator {
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #ff3b30;
+    color: #fff;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(255,59,48,0.3);
+}
+
+.rec-dot {
+    width: 8px;
+    height: 8px;
+    background: #fff;
+    border-radius: 50%;
+    animation: blink 1s infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+}
+
+/* Image lightbox */
+.lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.lightbox img {
+    max-width: 95%;
+    max-height: 95%;
+    border-radius: 8px;
 }
 
 @media (max-width: 640px) {
@@ -235,5 +426,8 @@ body {
     .card {
         width: 100%;
         max-width: 280px;
+    }
+    .message {
+        max-width: 85%;
     }
 }
