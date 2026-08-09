@@ -494,10 +494,43 @@ function saveEdit() {
     closeModal();
 }
 
-function deleteMessage(messageId) {
-    if (!confirm('Delete this message?')) return;
+let pendingDeleteId = null;
 
-    db.collection('messages').doc(messageId).update({
+function deleteMessage(messageId) {
+    pendingDeleteId = messageId;
+
+    const existing = document.getElementById('confirmModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'confirmModal';
+    modal.className = 'edit-modal-overlay';
+    modal.onclick = (e) => { if (e.target === modal) closeConfirm(); };
+
+    modal.innerHTML = `
+        <div class="edit-modal">
+            <h3>Delete Message</h3>
+            <p style="font-size:0.9rem; color:#6e6e73; margin-bottom:1rem;">Are you sure you want to delete this message?</p>
+            <div class="edit-modal-actions">
+                <button class="edit-cancel-btn" onclick="closeConfirm()">Cancel</button>
+                <button class="edit-save-btn" style="background:#ff3b30;" onclick="confirmDelete()">Delete</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+}
+
+function closeConfirm() {
+    const modal = document.getElementById('confirmModal');
+    if (modal) modal.remove();
+    pendingDeleteId = null;
+}
+
+function confirmDelete() {
+    if (!pendingDeleteId) return;
+
+    db.collection('messages').doc(pendingDeleteId).update({
         deleted: true,
         deletedBy: currentUser,
         text: '',
@@ -506,6 +539,8 @@ function deleteMessage(messageId) {
         fileSize: null,
         type: 'deleted'
     });
+
+    closeConfirm();
 }
 
 function escapeHtml(text) {
