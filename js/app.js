@@ -698,13 +698,13 @@ function quickReact(id) {
         picker.style.left = '50%';
     }
 
-    setTimeout(() => {
-        document.addEventListener('click', (e) => {
-            if (!picker.contains(e.target) && !e.target.closest('.msg-react-btn')) {
-                closeReactionPicker();
-            }
-        }, { once: true });
-    }, 100);
+    const closeHandler = (e) => {
+        if (!picker.contains(e.target) && !e.target.closest('.msg-react-btn')) {
+            closeReactionPicker();
+            document.removeEventListener('click', closeHandler);
+        }
+    };
+    setTimeout(() => document.addEventListener('click', closeHandler), 100);
 }
 
 // ===== UTILS =====
