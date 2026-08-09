@@ -141,12 +141,6 @@ html, body {
     font-weight: 600;
 }
 
-.online-status {
-    font-size: 0.7rem;
-    color: #4caf50;
-    height: 14px;
-}
-
 .search-btn, .theme-btn, .switch-btn {
     background: none;
     border: none;
@@ -245,7 +239,7 @@ body.dark mark {
 
 .reply-bar-left {
     width: 4px;
-    background: #0071e3;
+    background: #6C5CE7;
     border-radius: 2px;
     margin-right: 0.5rem;
     flex-shrink: 0;
@@ -357,12 +351,12 @@ body.dark .date-separator span {
 }
 
 .message.hubby {
-    background: #0071e3;
+    background: #6C5CE7;
     color: #fff;
 }
 
 .message.wifeyy {
-    background: #ff6b8a;
+    background: #E17055;
     color: #fff;
 }
 
@@ -432,7 +426,7 @@ body.dark .date-separator span {
 
 .tick.read {
     opacity: 1;
-    color: #53bdeb;
+    color: #25D366;
 }
 
 /* Action Buttons */

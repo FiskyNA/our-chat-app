@@ -91,33 +91,11 @@ function watchTyping() {
     db.collection('presence').doc(otherUser).onSnapshot(doc => {
         const data = doc.data();
         const indicator = document.getElementById('typingIndicator');
-        const statusEl = document.getElementById('onlineStatus');
 
         if (data && data.typing) {
             indicator.textContent = `${otherName} is typing...`;
-            if (statusEl) statusEl.textContent = 'online';
         } else {
             indicator.textContent = '';
-            if (statusEl) {
-                if (data && data.lastSeen) {
-                    const lastSeen = data.lastSeen.toDate();
-                    const now = new Date();
-                    const diffMs = now - lastSeen;
-                    const diffMin = Math.floor(diffMs / 60000);
-
-                    if (diffMin < 1) {
-                        statusEl.textContent = 'online';
-                    } else if (diffMin < 60) {
-                        statusEl.textContent = `last seen ${diffMin}m ago`;
-                    } else if (diffMin < 1440) {
-                        statusEl.textContent = `last seen ${Math.floor(diffMin / 60)}h ago`;
-                    } else {
-                        statusEl.textContent = `last seen ${lastSeen.toLocaleDateString()}`;
-                    }
-                } else {
-                    statusEl.textContent = '';
-                }
-            }
         }
     });
 }
