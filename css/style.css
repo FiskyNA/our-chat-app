@@ -613,26 +613,6 @@ body.dark .date-separator span {
     background: #f5f5f7;
 }
 
-.gif-btn, .sticker-btn {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    border: none;
-    background: #f5f5f7;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.gif-btn:active, .sticker-btn:active {
-    background: #e5e5e7;
-}
-
 .attach-btn, .mic-btn {
     width: 36px;
     height: 36px;
@@ -722,131 +702,6 @@ body.dark .date-separator span {
 .emoji-item:active {
     background: #f5f5f7;
     transform: scale(1.1);
-}
-
-/* GIF Picker */
-.gif-picker {
-    position: absolute;
-    bottom: 90px;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e5e7;
-    padding: 0.5rem;
-    z-index: 20;
-    max-height: 260px;
-    overflow: hidden;
-    animation: slideUp 0.2s ease;
-}
-
-.gif-search-bar {
-    display: flex;
-    gap: 0.3rem;
-    margin-bottom: 0.4rem;
-}
-
-.gif-search-bar input {
-    flex: 1;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 0.35rem 0.5rem;
-    font-size: 0.85rem;
-    outline: none;
-}
-
-.gif-search-bar input:focus {
-    border-color: #0071e3;
-}
-
-.gif-search-btn {
-    background: #0071e3;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    padding: 0.35rem 0.6rem;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.gif-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.2rem;
-    max-height: 200px;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-}
-
-.gif-item {
-    width: 100%;
-    aspect-ratio: 1;
-    object-fit: cover;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: transform 0.1s;
-    background: #f0f0f0;
-}
-
-.gif-item:active {
-    transform: scale(0.95);
-}
-
-.gif-loading {
-    text-align: center;
-    padding: 1rem;
-    color: #999;
-    font-size: 0.85rem;
-}
-
-/* Sticker Picker */
-.sticker-picker {
-    position: absolute;
-    bottom: 90px;
-    left: 0;
-    right: 0;
-    background: #fff;
-    border-top: 1px solid #e5e5e7;
-    padding: 0.5rem;
-    z-index: 20;
-    max-height: 260px;
-    overflow-y: auto;
-    animation: slideUp 0.2s ease;
-    -webkit-overflow-scrolling: touch;
-}
-
-.sticker-category {
-    font-size: 0.7rem;
-    font-weight: 600;
-    color: #999;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    padding: 0.3rem 0.2rem 0.15rem;
-}
-
-.sticker-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.1rem;
-    margin-bottom: 0.3rem;
-}
-
-.sticker-btn-item {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: none;
-    font-size: 1.6rem;
-    cursor: pointer;
-    border-radius: 8px;
-    transition: all 0.1s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.sticker-btn-item:active {
-    background: #f0f0f0;
-    transform: scale(1.2);
 }
 
 /* Reaction Picker */
@@ -1161,10 +1016,6 @@ body.dark .attach-btn:active, body.dark .mic-btn:active, body.dark .emoji-btn:ac
 body.dark .send-btn { background: #0a84ff; }
 body.dark .send-btn:active { background: #409cff; }
 body.dark .emoji-picker { background: #1c1c1e; border-top-color: #38383a; }
-body.dark .gif-picker { background: #1c1c1e; border-top-color: #38383a; }
-body.dark .gif-search-bar input { background: #2c2c2e; border-color: #48484a; color: #fff; }
-body.dark .sticker-picker { background: #1c1c1e; border-top-color: #38383a; }
-body.dark .sticker-btn-item:active { background: #38383a; }
 body.dark .emoji-item:active { background: #2c2c2e; }
 body.dark .reaction-picker { background: #2c2c2e; }
 body.dark .reaction-option:active { background: #38383a; }
