@@ -140,14 +140,104 @@ function initEmojiPicker() {
         const btn = document.createElement('button');
         btn.className = 'emoji-item';
         btn.textContent = emoji;
+        btn.setAttribute('data-name', getEmojiName(emoji));
         btn.onclick = () => insertEmoji(emoji);
         grid.appendChild(btn);
+    });
+
+    document.getElementById('emojiSearch').addEventListener('input', filterEmojis);
+}
+
+function getEmojiName(emoji) {
+    const names = {
+        '😀': 'smile', '😃': 'smile', '😄': 'smile', '😁': 'grin', '😆': 'laugh',
+        '😅': 'sweat', '🤣': 'rofl', '😂': 'joy', '🙂': 'slight smile', '🙃': 'upside down',
+        '😉': 'wink', '😊': 'blush', '😇': 'innocent', '🥰': 'love', '😍': 'heart eyes',
+        '🤩': 'starstruck', '😘': 'kiss', '😗': 'kiss', '😚': 'kiss', '😙': 'kiss',
+        '🥲': 'tearful', '😋': 'yummy', '😛': 'tongue', '😜': 'wink tongue', '🤪': 'zany',
+        '😝': 'squint tongue', '🤑': 'money', '🤗': 'hug', '🤭': 'oops', '🤫': 'shh',
+        '🤔': 'thinking', '🤐': 'zipper', '🤨': 'raised eyebrow', '😐': 'neutral',
+        '😑': 'expressionless', '😶': 'no mouth', '😏': 'smirk', '😒': 'unamused',
+        '🙄': 'eye roll', '😬': 'grimace', '🤥': 'lying', '😌': 'relieved',
+        '😔': 'pensive', '😪': 'sleepy', '🤤': 'drool', '😴': 'sleeping',
+        '😷': 'mask', '🤒': 'thermometer', '🤕': 'bandage', '🤢': 'nauseous',
+        '🤮': 'vomiting', '🥵': 'hot', '🥶': 'cold', '🥴': 'woozy', '😵': 'dizzy',
+        '🤯': 'mind blown', '🤠': 'cowboy', '🥳': 'party', '😎': 'cool',
+        '🤓': 'nerd', '🧐': 'monocle', '😕': 'confused', '😟': 'worried',
+        '🙁': 'slightly sad', '😮': 'open mouth', '😯': 'hushed', '😲': 'astonished',
+        '😳': 'flushed', '🥺': 'pleading', '😦': 'frown open', '😧': 'anguished',
+        '😨': 'fearful', '😰': 'anxious', '😥': 'sad relieved', '😢': 'cry',
+        '😭': 'sob', '😱': 'scream', '😖': 'confounded', '😣': 'persevere',
+        '😞': 'disappointed', '😓': 'down sweat', '😩': 'weary', '😫': 'tired',
+        '🥱': 'yawn', '😤': 'triumph', '😡': 'angry', '😠': 'angry',
+        '🤬': 'swearing', '😈': 'devil', '👿': 'angry devil', '💀': 'skull',
+        '💩': 'poop', '🤡': 'clown', '👹': 'ogre', '👺': 'goblin',
+        '👻': 'ghost', '👽': 'alien', '👾': 'alien monster', '🤖': 'robot',
+        '❤️': 'heart', '🧡': 'orange heart', '💛': 'yellow heart', '💚': 'green heart',
+        '💙': 'blue heart', '💜': 'purple heart', '🖤': 'black heart', '🤍': 'white heart',
+        '💔': 'broken heart', '❣️': 'heart exclamation', '💕': 'two hearts',
+        '💞': 'revolving hearts', '💓': 'heartbeat', '💗': 'growing heart',
+        '💖': 'sparkling heart', '💘': 'heart arrow', '💝': 'gift heart',
+        '👍': 'thumbs up', '👎': 'thumbs down', '👏': 'clap', '🙌': 'raised hands',
+        '🤝': 'handshake', '🙏': 'pray', '✌️': 'peace', '🤞': 'crossed fingers',
+        '🤟': 'love you', '🤘': 'rock on', '👌': 'ok', '👈': 'point left',
+        '👉': 'point right', '👆': 'point up', '👇': 'point down', '💪': 'muscle',
+        '🔥': 'fire', '⭐': 'star', '🌟': 'glowing star', '✨': 'sparkles',
+        '🎉': 'party', '🎊': 'confetti', '🎈': 'balloon', '🎁': 'gift',
+        '🎂': 'cake', '🍰': 'cake', '🍩': 'donut', '🍪': 'cookie',
+        '🍫': 'chocolate', '🍬': 'candy', '☕': 'coffee', '🍺': 'beer',
+        '🥂': 'cheers', '🍷': 'wine', '🍕': 'pizza', '🍔': 'burger',
+        '🍟': 'fries', '🌮': 'taco', '🍣': 'sushi', '🍦': 'ice cream',
+        '🌈': 'rainbow', '☀️': 'sun', '🌙': 'moon', '⭐': 'star',
+        '🌸': 'cherry blossom', '🌺': 'hibiscus', '🌻': 'sunflower', '🌹': 'rose',
+        '🎵': 'music', '🎶': 'notes', '📸': 'camera', '💻': 'laptop',
+        '📱': 'phone', '💌': 'love letter', '📝': 'memo', '✏️': 'pencil',
+        '💎': 'gem', '🏆': 'trophy', '⚽': 'soccer', '🏀': 'basketball',
+        '🎮': 'video game', '🕹️': 'joystick', '🧩': 'puzzle', '🧸': 'teddy bear',
+        '👶': 'baby', '👧': 'girl', '👦': 'boy', '👨': 'man', '👩': 'woman',
+        '🧓': 'older person', '👴': 'old man', '👵': 'old woman',
+        '🐶': 'dog', '🐱': 'cat', '🐭': 'mouse', '🐹': 'hamster',
+        '🐰': 'rabbit', '🦊': 'fox', '🐻': 'bear', '🐼': 'panda',
+        '🐨': 'koala', '🐯': 'tiger', '🦁': 'lion', '🐮': 'cow',
+        '🐷': 'pig', '🐸': 'frog', '🐵': 'monkey', '🙈': 'see no evil',
+        '🙉': 'hear no evil', '🙊': 'speak no evil', '🐔': 'chicken',
+        '🐧': 'penguin', '🐦': 'bird', '🐤': 'baby chick', '🦆': 'duck',
+        '🦅': 'eagle', '🦉': 'owl', '🦇': 'bat', '🐺': 'wolf',
+        '🐗': 'boar', '🐴': 'horse', '🦄': 'unicorn', '🐝': 'bee',
+        '🐛': 'bug', '🦋': 'butterfly', '🐌': 'snail', '🐞': 'ladybug',
+        '🐜': 'ant', '🪲': 'beetle', '🐢': 'turtle', '🐍': 'snake',
+        '🦎': 'lizard', '🐙': 'octopus', '🦑': 'squid', '🦐': 'shrimp',
+        '🦀': 'crab', '🐠': 'tropical fish', '🐟': 'fish', '🐡': 'blowfish',
+        '🐬': 'dolphin', '🐳': 'whale', '🐋': 'whale', '🦈': 'shark',
+        '🐊': 'crocodile', '🐅': 'tiger', '🐆': 'leopard', '🦓': 'zebra',
+        '🦍': 'gorilla', '🐘': 'elephant', '🦛': 'hippo', '🐪': 'camel',
+        '🦒': 'giraffe', '🐃': 'water buffalo', '🐂': 'ox', '🐄': 'cow',
+        '🐎': 'horse', '🐑': 'sheep', '🦙': 'llama', '🐐': 'goat',
+        ' deer': 'deer', '🐕': 'dog', '🐩': 'poodle', '🐈': 'cat'
+    };
+    return names[emoji] || 'emoji';
+}
+
+function filterEmojis() {
+    const query = document.getElementById('emojiSearch').value.toLowerCase().trim();
+    const items = document.querySelectorAll('#emojiGrid .emoji-item');
+    items.forEach(item => {
+        const name = item.getAttribute('data-name') || '';
+        item.style.display = (!query || name.includes(query)) ? '' : 'none';
     });
 }
 
 function toggleEmojiPicker() {
     const picker = document.getElementById('emojiPicker');
-    picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
+    const search = document.getElementById('emojiSearch');
+    if (picker.style.display === 'none') {
+        picker.style.display = 'block';
+        search.value = '';
+        filterEmojis();
+        setTimeout(() => search.focus(), 100);
+    } else {
+        picker.style.display = 'none';
+    }
     closeReactionPicker();
 }
 
@@ -182,10 +272,10 @@ function watchTyping() {
         const indicator = document.getElementById('typingIndicator');
 
         if (data && data.typing) {
-            indicator.textContent = `${otherName} is typing...`;
-            indicator.style.display = 'block';
+            indicator.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div><span>${otherName} is typing</span>`;
+            indicator.style.display = 'flex';
         } else {
-            indicator.textContent = '';
+            indicator.innerHTML = '';
             indicator.style.display = 'none';
         }
     });
@@ -222,28 +312,76 @@ db.collection('messages')
         const wasAtBottom = messagesArea.scrollHeight - messagesArea.scrollTop <= messagesArea.clientHeight + 100;
 
         const currentIds = snapshot.docs.map(d => d.id);
-        const idsChanged = JSON.stringify(currentIds) !== JSON.stringify(lastRenderedIds);
 
-        if (idsChanged) {
-            messagesArea.innerHTML = '';
-            lastRenderedIds = currentIds;
+        // Find new and removed message IDs
+        const newIds = currentIds.filter(id => !lastRenderedIds.includes(id));
+        const removedIds = lastRenderedIds.filter(id => !currentIds.includes(id));
 
+        if (newIds.length > 0 || removedIds.length > 0) {
+            // Remove deleted messages
+            removedIds.forEach(id => {
+                const el = document.getElementById('msg-' + id);
+                if (el) el.remove();
+                // Also remove date separator if it was before this message
+                const prev = el ? el.previousElementSibling : null;
+                if (prev && prev.classList.contains('date-separator')) {
+                    prev.remove();
+                }
+            });
+
+            // Add new messages
             let prevMsg = null;
-            snapshot.forEach(doc => {
+            const prevDocId = newIds.length > 0 ? currentIds[currentIds.indexOf(newIds[0]) - 1] : null;
+            if (prevDocId) {
+                const prevEl = document.getElementById('msg-' + prevDocId);
+                if (prevEl) prevMsg = prevEl._msgData;
+            }
+
+            newIds.forEach(id => {
+                const doc = snapshot.docs.find(d => d.id === id);
+                if (!doc) return;
                 const msg = doc.data();
 
                 if (shouldShowDateSeparator(msg, prevMsg)) {
                     const sep = document.createElement('div');
                     sep.className = 'date-separator';
                     sep.innerHTML = `<span>${getDateLabel(msg.timestamp)}</span>`;
-                    messagesArea.appendChild(sep);
+
+                    // Insert at correct position
+                    const nextMsgIndex = currentIds.indexOf(id);
+                    let insertBefore = null;
+                    for (let i = nextMsgIndex + 1; i < currentIds.length; i++) {
+                        const nextEl = document.getElementById('msg-' + currentIds[i]);
+                        if (nextEl) { insertBefore = nextEl; break; }
+                    }
+                    if (insertBefore) {
+                        messagesArea.insertBefore(sep, insertBefore);
+                    } else {
+                        messagesArea.appendChild(sep);
+                    }
                 }
 
-                const div = createMessageElement(doc.id, msg);
-                messagesArea.appendChild(div);
+                const div = createMessageElement(id, msg);
+
+                // Insert at correct position
+                const nextMsgIndex = currentIds.indexOf(id);
+                let insertBefore = null;
+                for (let i = nextMsgIndex + 1; i < currentIds.length; i++) {
+                    const nextEl = document.getElementById('msg-' + currentIds[i]);
+                    if (nextEl) { insertBefore = nextEl; break; }
+                }
+                if (insertBefore) {
+                    messagesArea.insertBefore(div, insertBefore);
+                } else {
+                    messagesArea.appendChild(div);
+                }
+
                 prevMsg = msg;
             });
+
+            lastRenderedIds = currentIds;
         } else {
+            // Just update existing messages in place (reactions, read status, etc.)
             snapshot.forEach(doc => {
                 const msg = doc.data();
                 const existing = document.getElementById('msg-' + doc.id);
@@ -259,35 +397,29 @@ db.collection('messages')
         }
 
         // Mark received messages as read (blue ticks)
-        markMessagesAsRead();
+        markMessagesAsRead(snapshot);
 
         // Show notification for new messages from other user
-        if (idsChanged && snapshot.docs.length > 0) {
+        if (newIds.length > 0 && snapshot.docs.length > 0) {
             const lastDoc = snapshot.docs[snapshot.docs.length - 1];
             const lastMsg = lastDoc.data();
             if (lastMsg.sender === otherUser && !document.hidden) {
-                // Only notify if user scrolled up (not at bottom)
                 if (!wasAtBottom) {
                     const senderName = lastMsg.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
                     showNotification(senderName, lastMsg.text || '📎 Attachment');
                 }
             }
         }
+        }
     });
 
-function markMessagesAsRead() {
-    db.collection('messages')
-        .where('sender', '==', otherUser)
-        .where('read', '==', false)
-        .get()
-        .then(snapshot => {
-            const batch = db.batch();
-            snapshot.forEach(doc => {
-                batch.update(doc.ref, { read: true });
-            });
-            if (!snapshot.empty) batch.commit();
-        })
-        .catch(() => {});
+function markMessagesAsRead(snapshot) {
+    if (!snapshot || snapshot.docs.length === 0) return;
+    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+    const lastMsg = lastDoc.data();
+    if (lastMsg.sender === otherUser && !lastMsg.read) {
+        lastDoc.ref.update({ read: true }).catch(() => {});
+    }
 }
 
 function createMessageElement(id, msg) {
@@ -304,17 +436,20 @@ function createMessageElement(id, msg) {
     let startX = 0;
     let swiping = false;
     let replyIndicator = null;
+    let lastTranslate = 0;
 
     div.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
         swiping = false;
+        lastTranslate = 0;
     });
 
     div.addEventListener('touchmove', (e) => {
         const diff = e.touches[0].clientX - startX;
         if (diff > 10) {
             swiping = true;
-            div.style.transform = `translateX(${Math.min(diff * 0.5, 80)}px)`;
+            lastTranslate = Math.min(diff * 0.5, 80);
+            div.style.transform = `translateX(${lastTranslate}px)`;
             div.style.transition = 'none';
 
             // Show reply indicator
@@ -330,7 +465,6 @@ function createMessageElement(id, msg) {
     });
 
     div.addEventListener('touchend', () => {
-        const currentTranslate = div.style.transform;
         div.style.transition = 'transform 0.2s ease';
         div.style.transform = '';
 
@@ -340,13 +474,11 @@ function createMessageElement(id, msg) {
             replyIndicator = null;
         }
 
-        if (swiping) {
-            const match = currentTranslate.match(/translateX\((.+)px\)/);
-            if (match && parseFloat(match[1]) > 50) {
-                quickReply(id);
-            }
+        if (swiping && lastTranslate > 50) {
+            quickReply(id);
         }
         swiping = false;
+        lastTranslate = 0;
     });
 
     // Deleted messages
@@ -879,7 +1011,9 @@ document.addEventListener('click', () => {
 });
 
 function toggleReadMore(btn) {
-    const textEl = btn.previousElementSibling.querySelector('.message-text');
+    const msgEl = btn.closest('.message');
+    const textEl = msgEl ? msgEl.querySelector('.message-text') : null;
+    if (!textEl) return;
     if (btn.textContent === 'Read more...') {
         textEl.classList.add('expanded');
         btn.textContent = 'Read less';
@@ -950,7 +1084,7 @@ function openEditModal(messageId, currentText) {
     modal.innerHTML = `
         <div class="edit-modal">
             <h3>Edit Message</h3>
-            <input type="text" id="editInput" value="${escapeHtml(currentText)}" autocomplete="off">
+            <input type="text" id="editInput" autocomplete="off">
             <div class="edit-modal-actions">
                 <button class="edit-cancel-btn" onclick="closeModal()">Cancel</button>
                 <button class="edit-save-btn" onclick="saveEdit()">Save</button>
@@ -960,6 +1094,7 @@ function openEditModal(messageId, currentText) {
 
     document.body.appendChild(modal);
     const input = document.getElementById('editInput');
+    input.value = currentText;
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
     input.addEventListener('keypress', (e) => { if (e.key === 'Enter') saveEdit(); });
@@ -1020,9 +1155,7 @@ function confirmDelete() {
 }
 
 function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function formatText(text) {
@@ -1078,29 +1211,33 @@ function toggleSearch() {
 document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
+        let searchTimeout;
         searchInput.addEventListener('input', () => {
-            const query = searchInput.value.trim().toLowerCase();
-            const messages = document.querySelectorAll('.message');
-            messages.forEach(msg => {
-                const textEl = msg.querySelector('.message-text');
-                if (!textEl) return;
-                if (!query) {
-                    msg.style.display = '';
-                    textEl.innerHTML = formatText(textEl.dataset.original || textEl.textContent);
-                    return;
-                }
-                if (!textEl.dataset.original) {
-                    textEl.dataset.original = textEl.textContent;
-                }
-                const text = textEl.dataset.original.toLowerCase();
-                if (text.includes(query)) {
-                    msg.style.display = '';
-                    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                    textEl.innerHTML = formatText(textEl.dataset.original).replace(regex, '<mark>$1</mark>');
-                } else {
-                    msg.style.display = 'none';
-                }
-            });
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = searchInput.value.trim().toLowerCase();
+                const messages = document.querySelectorAll('.message');
+                messages.forEach(msg => {
+                    const textEl = msg.querySelector('.message-text');
+                    if (!textEl) return;
+                    if (!query) {
+                        msg.style.display = '';
+                        textEl.innerHTML = formatText(textEl.dataset.original || textEl.textContent);
+                        return;
+                    }
+                    if (!textEl.dataset.original) {
+                        textEl.dataset.original = textEl.textContent;
+                    }
+                    const text = textEl.dataset.original.toLowerCase();
+                    if (text.includes(query)) {
+                        msg.style.display = '';
+                        const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                        textEl.innerHTML = formatText(textEl.dataset.original).replace(regex, '<mark>$1</mark>');
+                    } else {
+                        msg.style.display = 'none';
+                    }
+                });
+            }, 200);
         });
     }
 });
