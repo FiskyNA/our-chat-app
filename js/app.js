@@ -94,8 +94,10 @@ function watchTyping() {
 
         if (data && data.typing) {
             indicator.textContent = `${otherName} is typing...`;
+            indicator.style.display = 'block';
         } else {
             indicator.textContent = '';
+            indicator.style.display = 'none';
         }
     });
 }

@@ -207,17 +207,29 @@ body.dark mark {
     background: #5a4a00;
 }
 
-.typing-indicator {
-    font-size: 0.7rem;
-    color: #4caf50;
-    height: 14px;
-    animation: fadeIn 0.2s ease;
-}
-
 .header-actions {
     display: flex;
     gap: 0.4rem;
     align-items: center;
+}
+
+.typing-indicator-bottom {
+    font-size: 0.75rem;
+    color: #6e6e73;
+    padding: 0.3rem 1rem;
+    background: #f5f5f7;
+    border-top: 1px solid #e5e5e7;
+    font-style: italic;
+}
+
+.typing-indicator-bottom:empty {
+    display: none;
+}
+
+body.dark .typing-indicator-bottom {
+    background: #2c2c2e;
+    border-top-color: #38383a;
+    color: #a1a1a6;
 }
 
 /* Reply Preview - WhatsApp Style */

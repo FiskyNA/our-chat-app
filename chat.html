@@ -16,7 +16,6 @@
             <span class="header-user" id="currentUser"></span>
             <div class="header-center">
                 <span class="header-title">Our Chat</span>
-                <span class="typing-indicator" id="typingIndicator"></span>
             </div>
             <div class="header-actions">
                 <button class="search-btn" onclick="toggleSearch()" title="Search messages">&#128269;</button>
@@ -44,6 +43,8 @@
         <div class="messages-area" id="messagesArea">
             <div class="loading" id="loading">Loading messages...</div>
         </div>
+
+        <div class="typing-indicator-bottom" id="typingIndicator" style="display:none;"></div>
 
         <div class="upload-progress" id="uploadProgress" style="display:none;">
             <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
