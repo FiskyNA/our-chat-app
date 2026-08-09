@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Chat</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body class="selection-page">
+    <div class="selection-container">
+        <h1 class="selection-title">Who are you?</h1>
+        <p class="selection-subtitle">Choose your card to start chatting</p>
+        <div class="cards-wrapper">
+            <div class="card hubby-card" onclick="selectUser('hubby')">
+                <div class="card-icon">&#128104;</div>
+                <h2 class="card-name">Hubby</h2>
+                <p class="card-desc">Tap to enter as Hubby</p>
+            </div>
+            <div class="card wifeyy-card" onclick="selectUser('wifeyy')">
+                <div class="card-icon">&#128105;</div>
+                <h2 class="card-name">Wifeyy</h2>
+                <p class="card-desc">Tap to enter as Wifeyy</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function selectUser(user) {
+            localStorage.setItem('chatUser', user);
+            window.location.href = 'chat.html';
+        }
+
+        // If user already selected, redirect to chat
+        if (localStorage.getItem('chatUser')) {
+            window.location.href = 'chat.html';
+        }
+    </script>
+</body>
+</html>
