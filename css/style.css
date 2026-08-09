@@ -521,7 +521,7 @@ body.dark .date-separator span {
     opacity: 1;
     margin-left: 0.2rem;
     font-weight: 600;
-    color: #888;
+    color: #ff6b6b;
 }
 
 .tick.read {
