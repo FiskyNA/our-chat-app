@@ -61,12 +61,16 @@
 
         <!-- Reaction Picker -->
         <div class="reaction-picker" id="reactionPicker" style="display:none;">
-            <button class="reaction-option" onclick="addReaction('❤️')">&#10084;&#65039;</button>
-            <button class="reaction-option" onclick="addReaction('😂')">😂</button>
-            <button class="reaction-option" onclick="addReaction('🔥')">&#128293;</button>
-            <button class="reaction-option" onclick="addReaction('👍')">&#128077;</button>
-            <button class="reaction-option" onclick="addReaction('😘')">&#128536;</button>
-            <button class="reaction-option" onclick="addReaction('😢')">&#128546;</button>
+            <input type="text" id="reactionInput" class="reaction-input" placeholder="Type an emoji..." maxlength="10" autocomplete="off">
+            <button class="reaction-send-btn" onclick="submitReaction()">✓</button>
+            <div class="reaction-quick">
+                <button class="reaction-option" onclick="submitQuickReaction('❤️')">❤️</button>
+                <button class="reaction-option" onclick="submitQuickReaction('😂')">😂</button>
+                <button class="reaction-option" onclick="submitQuickReaction('🔥')">🔥</button>
+                <button class="reaction-option" onclick="submitQuickReaction('👍')">👍</button>
+                <button class="reaction-option" onclick="submitQuickReaction('😘')">😘</button>
+                <button class="reaction-option" onclick="submitQuickReaction('😢')">😢</button>
+            </div>
         </div>
 
         <!-- Context Menu -->

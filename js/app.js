@@ -219,11 +219,6 @@ function createMessageElement(id, msg) {
 
     let actionBtns = '';
 
-    // Copy button - for all messages
-    if (msg.text) {
-        actionBtns += `<button class="msg-copy-btn" onclick="event.stopPropagation(); copyMsgText('${id}')" title="Copy">📋</button>`;
-    }
-
     // Reply button - for all messages
     actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">💬</button>`;
 
@@ -350,6 +345,22 @@ function addReaction(emoji) {
     if (!selectedMessageId) return;
     toggleReaction(selectedMessageId, emoji);
     closeReactionPicker();
+}
+
+function submitReaction() {
+    const input = document.getElementById('reactionInput');
+    const emoji = input.value.trim();
+    if (emoji && selectedMessageId) {
+        toggleReaction(selectedMessageId, emoji);
+        closeReactionPicker();
+    }
+}
+
+function submitQuickReaction(emoji) {
+    if (selectedMessageId) {
+        toggleReaction(selectedMessageId, emoji);
+        closeReactionPicker();
+    }
 }
 
 function toggleReaction(messageId, emoji) {
@@ -663,8 +674,26 @@ function quickReact(id) {
         picker.style.left = '50%';
     }
 
+    const input = document.getElementById('reactionInput');
+    input.value = '';
     setTimeout(() => {
-        document.addEventListener('click', closeReactionPicker, { once: true });
+        input.focus();
+        input.click();
+    }, 50);
+
+    input.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            submitReaction();
+        }
+    };
+
+    setTimeout(() => {
+        document.addEventListener('click', (e) => {
+            if (!picker.contains(e.target) && !e.target.closest('.msg-react-btn')) {
+                closeReactionPicker();
+            }
+        }, { once: true });
     }, 100);
 }
 

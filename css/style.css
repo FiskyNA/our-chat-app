@@ -702,13 +702,55 @@ body.dark .date-separator span {
     left: 50%;
     transform: translateX(-50%);
     background: #fff;
-    border-radius: 24px;
-    padding: 0.4rem 0.6rem;
+    border-radius: 16px;
+    padding: 0.5rem;
     display: flex;
-    gap: 0.2rem;
+    flex-wrap: wrap;
+    gap: 0.3rem;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     z-index: 100;
     animation: popIn 0.2s ease;
+    align-items: center;
+}
+
+.reaction-input {
+    width: 120px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 0.35rem 0.5rem;
+    font-size: 1.1rem;
+    outline: none;
+    text-align: center;
+}
+
+.reaction-input:focus {
+    border-color: #0071e3;
+}
+
+.reaction-send-btn {
+    background: #0071e3;
+    color: #fff;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reaction-send-btn:active {
+    transform: scale(0.9);
+}
+
+.reaction-quick {
+    display: flex;
+    gap: 0.1rem;
+    width: 100%;
+    justify-content: center;
+    margin-top: 0.2rem;
 }
 
 @keyframes popIn {
@@ -717,11 +759,11 @@ body.dark .date-separator span {
 }
 
 .reaction-option {
-    width: 40px;
-    height: 40px;
+    width: 36px;
+    height: 36px;
     border: none;
     background: none;
-    font-size: 1.5rem;
+    font-size: 1.3rem;
     cursor: pointer;
     border-radius: 50%;
     transition: all 0.15s;
