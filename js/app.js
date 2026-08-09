@@ -221,21 +221,21 @@ function createMessageElement(id, msg) {
 
     // Copy button - for all messages
     if (msg.text) {
-        actionBtns += `<button class="msg-copy-btn" onclick="event.stopPropagation(); copyMsgText('${id}')" title="Copy">&#128203;</button>`;
+        actionBtns += `<button class="msg-copy-btn" onclick="event.stopPropagation(); copyMsgText('${id}')" title="Copy">📋</button>`;
     }
 
     // Reply button - for all messages
-    actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">&#128172;</button>`;
+    actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">💬</button>`;
 
     // React button - for all messages
-    actionBtns += `<button class="msg-react-btn" onclick="event.stopPropagation(); quickReact('${id}')" title="React">&#128150;</button>`;
+    actionBtns += `<button class="msg-react-btn" onclick="event.stopPropagation(); quickReact('${id}')" title="React">❤️</button>`;
 
     // Edit & Delete - only for own text messages
     if (isOwn) {
         if (msg.type === 'text' && msg.text) {
-            actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`;
+            actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">✏️</button>`;
         }
-        actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${id}')">&#128465;</button>`;
+        actionBtns += `<button class="msg-delete-btn" onclick="event.stopPropagation(); deleteMessage('${id}')">🗑️</button>`;
     }
 
     // Reactions
