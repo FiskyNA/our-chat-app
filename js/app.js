@@ -388,7 +388,7 @@ function createMessageElement(id, msg) {
     }
 
     const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
-    const readTick = isOwn ? (msg.read ? '<span class="tick read">✓✓</span>' : '<span class="tick">✓✓</span>') : '';
+    const readTick = isOwn ? (msg.read ? '<span class="tick read">Seen</span>' : '') : '';
     const pinnedLabel = msg.pinned ? ' · <span class="pinned-label">📌 pinned</span>' : '';
 
     let menuItems = '';

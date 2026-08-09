@@ -662,15 +662,15 @@ body.dark .msg-reply {
 }
 
 .tick {
-    font-size: 0.75rem;
+    font-size: 0.65rem;
     opacity: 1;
     margin-left: 0.2rem;
-    font-weight: 600;
+    font-weight: 400;
     color: #53bdeb;
 }
 
 .tick.read {
-    color: #25D366;
+    color: #53bdeb;
 }
 
 /* Action Buttons */
