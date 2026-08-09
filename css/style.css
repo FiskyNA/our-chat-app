@@ -141,9 +141,81 @@ html, body {
     font-weight: 600;
 }
 
+.online-status {
+    font-size: 0.7rem;
+    color: #4caf50;
+    height: 14px;
+}
+
+.search-btn, .theme-btn, .switch-btn {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 50%;
+    color: inherit;
+    transition: background 0.15s;
+}
+
+.search-btn:active, .theme-btn:active, .switch-btn:active {
+    background: rgba(0,0,0,0.08);
+}
+
+.search-btn {
+    font-size: 1rem;
+}
+
+.search-bar {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 0.6rem;
+    background: #fff;
+    border-bottom: 1px solid #e5e5e7;
+    gap: 0.3rem;
+}
+
+.search-bar input {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.85rem;
+    outline: none;
+}
+
+.search-bar input:focus {
+    border-color: #0071e3;
+}
+
+.search-close-btn {
+    background: none;
+    border: none;
+    font-size: 1rem;
+    color: #6e6e73;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 50%;
+}
+
+.search-close-btn:active {
+    background: #f0f0f0;
+}
+
+mark {
+    background: #fff3cd;
+    color: inherit;
+    padding: 0 2px;
+    border-radius: 2px;
+}
+
+body.dark mark {
+    background: #5a4a00;
+}
+
 .typing-indicator {
     font-size: 0.7rem;
-    color: #6e6e73;
+    color: #4caf50;
     height: 14px;
     animation: fadeIn 0.2s ease;
 }
@@ -152,41 +224,6 @@ html, body {
     display: flex;
     gap: 0.4rem;
     align-items: center;
-}
-
-.theme-btn {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    border: 1px solid #e5e5e7;
-    background: none;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #6e6e73;
-}
-
-.theme-btn:active {
-    background: #f5f5f7;
-}
-
-.switch-btn {
-    background: none;
-    border: 1px solid #e5e5e7;
-    padding: 0.35rem 0.8rem;
-    border-radius: 16px;
-    cursor: pointer;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
-    color: #6e6e73;
-    transition: all 0.2s;
-}
-
-.switch-btn:active {
-    background: #f5f5f7;
 }
 
 /* Reply Preview - WhatsApp Style */
@@ -341,6 +378,14 @@ body.dark .date-separator span {
     white-space: pre-wrap;
 }
 
+.message-text code {
+    background: rgba(0,0,0,0.1);
+    padding: 0.1rem 0.3rem;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.85em;
+}
+
 /* Reply in message */
 .msg-reply {
     background: rgba(255,255,255,0.15);
@@ -377,6 +422,17 @@ body.dark .date-separator span {
 .edited-label {
     font-style: italic;
     opacity: 0.9;
+}
+
+.tick {
+    font-size: 0.65rem;
+    opacity: 0.5;
+    margin-left: 0.15rem;
+}
+
+.tick.read {
+    opacity: 1;
+    color: #53bdeb;
 }
 
 /* Action Buttons */

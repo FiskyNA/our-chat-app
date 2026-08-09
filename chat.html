@@ -16,12 +16,20 @@
             <span class="header-user" id="currentUser"></span>
             <div class="header-center">
                 <span class="header-title">Our Chat</span>
+                <span class="online-status" id="onlineStatus"></span>
                 <span class="typing-indicator" id="typingIndicator"></span>
             </div>
             <div class="header-actions">
+                <button class="search-btn" onclick="toggleSearch()" title="Search messages">&#128269;</button>
                 <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
                 <button class="switch-btn" onclick="switchUser()">Switch</button>
             </div>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="search-bar" id="searchBar" style="display:none;">
+            <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
+            <button class="search-close-btn" onclick="toggleSearch()">✕</button>
         </div>
 
         <!-- Reply Preview -->

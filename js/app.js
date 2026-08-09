@@ -91,10 +91,33 @@ function watchTyping() {
     db.collection('presence').doc(otherUser).onSnapshot(doc => {
         const data = doc.data();
         const indicator = document.getElementById('typingIndicator');
+        const statusEl = document.getElementById('onlineStatus');
+
         if (data && data.typing) {
             indicator.textContent = `${otherName} is typing...`;
+            if (statusEl) statusEl.textContent = 'online';
         } else {
             indicator.textContent = '';
+            if (statusEl) {
+                if (data && data.lastSeen) {
+                    const lastSeen = data.lastSeen.toDate();
+                    const now = new Date();
+                    const diffMs = now - lastSeen;
+                    const diffMin = Math.floor(diffMs / 60000);
+
+                    if (diffMin < 1) {
+                        statusEl.textContent = 'online';
+                    } else if (diffMin < 60) {
+                        statusEl.textContent = `last seen ${diffMin}m ago`;
+                    } else if (diffMin < 1440) {
+                        statusEl.textContent = `last seen ${Math.floor(diffMin / 60)}h ago`;
+                    } else {
+                        statusEl.textContent = `last seen ${lastSeen.toLocaleDateString()}`;
+                    }
+                } else {
+                    statusEl.textContent = '';
+                }
+            }
         }
     });
 }
@@ -171,7 +194,25 @@ db.collection('messages')
         if (wasAtBottom) {
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
+
+        // Mark received messages as read (blue ticks)
+        markMessagesAsRead();
     });
+
+function markMessagesAsRead() {
+    db.collection('messages')
+        .where('sender', '==', otherUser)
+        .where('read', '==', false)
+        .get()
+        .then(snapshot => {
+            const batch = db.batch();
+            snapshot.forEach(doc => {
+                batch.update(doc.ref, { read: true });
+            });
+            if (!snapshot.empty) batch.commit();
+        })
+        .catch(() => {});
+}
 
 function createMessageElement(id, msg) {
     const div = document.createElement('div');
@@ -249,6 +290,7 @@ function createMessageElement(id, msg) {
     }
 
     const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
+    const readTick = isOwn ? (msg.read ? '<span class="tick read">✓✓</span>' : '<span class="tick">✓✓</span>') : '';
 
     let actionBtns = '';
 
@@ -286,11 +328,11 @@ function createMessageElement(id, msg) {
         <div class="message-row">
             ${mediaHtml}
             ${replyHtml}
-            ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
+            ${msg.text ? `<div class="message-text">${formatText(msg.text)}</div>` : ''}
         </div>
         <div class="msg-actions">${actionBtns}</div>
         ${reactionsHtml}
-        <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
+        <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${readTick}${editedLabel}</div>
     `;
 
     return div;
@@ -444,6 +486,7 @@ function sendMessage() {
         sender: currentUser,
         text: text,
         type: 'text',
+        read: false,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -559,6 +602,7 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
         fileData: fileData,
         fileName: fileName,
         fileSize: formatFileSize(fileSize),
+        read: false,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -841,7 +885,74 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function formatText(text) {
+    let formatted = escapeHtml(text);
+    // Bold: *text*
+    formatted = formatted.replace(/\*(.+?)\*/g, '<strong>$1</strong>');
+    // Italic: _text_
+    formatted = formatted.replace(/_(.+?)_/g, '<em>$1</em>');
+    // Strikethrough: ~text~
+    formatted = formatted.replace(/~(.+?)~/g, '<del>$1</del>');
+    // Inline code: `text`
+    formatted = formatted.replace(/`(.+?)`/g, '<code>$1</code>');
+    return formatted;
+}
+
 // ===== INIT =====
 initEmojiPicker();
 initTyping();
 watchTyping();
+
+// ===== SEARCH =====
+function toggleSearch() {
+    const bar = document.getElementById('searchBar');
+    const isOpen = bar.style.display !== 'none';
+    bar.style.display = isOpen ? 'none' : 'flex';
+    if (!isOpen) {
+        document.getElementById('searchInput').focus();
+    } else {
+        document.getElementById('searchInput').value = '';
+        clearSearch();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const query = searchInput.value.trim().toLowerCase();
+            const messages = document.querySelectorAll('.message');
+            messages.forEach(msg => {
+                const textEl = msg.querySelector('.message-text');
+                if (!textEl) return;
+                if (!query) {
+                    msg.style.display = '';
+                    textEl.innerHTML = formatText(textEl.dataset.original || textEl.textContent);
+                    return;
+                }
+                if (!textEl.dataset.original) {
+                    textEl.dataset.original = textEl.textContent;
+                }
+                const text = textEl.dataset.original.toLowerCase();
+                if (text.includes(query)) {
+                    msg.style.display = '';
+                    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                    textEl.innerHTML = formatText(textEl.dataset.original).replace(regex, '<mark>$1</mark>');
+                } else {
+                    msg.style.display = 'none';
+                }
+            });
+        });
+    }
+});
+
+function clearSearch() {
+    const messages = document.querySelectorAll('.message');
+    messages.forEach(msg => {
+        msg.style.display = '';
+        const textEl = msg.querySelector('.message-text');
+        if (textEl && textEl.dataset.original) {
+            textEl.innerHTML = formatText(textEl.dataset.original);
+        }
+    });
+}
