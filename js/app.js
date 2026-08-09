@@ -39,9 +39,101 @@ if (localStorage.getItem('darkMode') === 'true') {
 }
 
 document.getElementById('currentUser').textContent = currentName;
+document.getElementById('headerAvatar').textContent = currentUser === 'hubby' ? '&#128104;' : '&#128105;';
+document.getElementById('headerStatus').textContent = 'Online';
 
-// ===== EMOJI PICKER =====
-const emojis = ['😀','😂','😍','🥰','😘','😭','🥺','🔥','❤️','💕','👍','👋','🎉','✨','💪','🙌','😏','🤔','😢','😡','🥺','😱','🤗','😴','🤮','🤧','💀','👀','🤡','💎','🌹','🦋','🌈','⭐','💫','🎵','📸','💌','🧸'];
+// ===== MIC/SEND TOGGLE =====
+const messageInput = document.getElementById('messageInput');
+const sendBtn = document.getElementById('sendBtn');
+const micBtn = document.getElementById('micBtn');
+
+function toggleMicSend() {
+    if (messageInput.value.trim()) {
+        sendBtn.classList.add('visible');
+        micBtn.style.display = 'none';
+    } else {
+        sendBtn.classList.remove('visible');
+        micBtn.style.display = 'flex';
+    }
+}
+
+messageInput.addEventListener('input', toggleMicSend);
+messageInput.addEventListener('input', () => {
+    setTyping(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => setTyping(false), 2000);
+});
+const emojis = [
+    '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃',
+    '😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙',
+    '🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🫢',
+    '🫣','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥',
+    '😏','😒','🙄','😬','🤥','😌','😔','😪','🤤','😴',
+    '😷','🤒','🤕','🤢','🤮','🥵','🥶','🥴','😵','🤯',
+    '🤠','🥳','🥸','😎','🤓','🧐','😕','🫤','😟','🙁',
+    '😮','😯','😲','😳','🥺','🥹','😦','😧','😨','😰',
+    '😥','😢','😭','😱','😖','😣','😞','😓','😩','😫',
+    '🥱','😤','😡','😠','🤬','😈','👿','💀','☠️','💩',
+    '🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹',
+    '😻','😼','😽','🙀','😿','😾','❤️','🧡','💛','💚',
+    '💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','❤️‍🩹','❣️','💕',
+    '💞','💓','💗','💖','💘','💝','💟','👍','👎','👊',
+    '✊','🤛','🤜','👏','🙌','👐','🤲','🤝','🙏','✌️',
+    '🤞','🫰','🤟','🤘','👌','🤌','🤏','👈','👉','👆',
+    '🖕','👇','☝️','🫵','💪','🦾','🦿','🦵','🦶','👂',
+    '🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅',
+    '👄','💋','🩸','💧','💦','🫧','💨','🫠','🎉','🎊',
+    '🎈','🎀','🎁','🎂','🍰','🧁','🍩','🍪','🍫','🍬',
+    '🍭','🍮','🍯','🍼','🥛','☕','🫖','🍵','🍶','🍾',
+    '🍷','🍸','🍹','🍺','🍻','🥂','🥃','🫗','🥤','🧋',
+    '🧃','🧊','🥢','🍽️','🍴','🥄','🔪','🫙','🏺','🌍',
+    '🌎','🌏','🗺️','🏔️','⛰️','🌋','🗻','🏕️','🏖️','🏜️',
+    '🏝️','🏞️','🏟️','🏛️','🏗️','🧱','🪨','🪵','🛖','🏠',
+    '🏡','🏢','🏣','🏤','🏥','🏦','🏨','🏩','🏪','🏫',
+    '🏬','🏭','🏯','🏰','💒','🗼','🗽','⛪','🕌','🛕',
+    '🕍','⛩️','🕋','⛲','⛺','🌁','🌃','🏙️','🌄','🌅',
+    '🌆','🌇','🌉','♨️','🎠','🛝','🎡','🎢','💈','🎪',
+    '🚂','🚃','🚄','🚅','🚆','🚇','🚈','🚉','🚊','🚝',
+    '🚞','🚋','🚌','🚍','🚎','🚐','🚑','🚒','🚓','🚔',
+    '🚕','🚖','🚗','🚘','🚙','🛻','🚚','🚛','🚜','🏎️',
+    '🏍️','🛵','🦽','🦼','🛺','🚲','🛴','🛹','🛼','🚏',
+    '🛣️','🛤️','🛞','⛽','🛞','🚨','🚥','🚦','🛑','🚧',
+    '⚓','🛟','⛵','🛶','🚤','🛳️','⛴️','🛥️','🚢','✈️',
+    '🛩️','🛫','🛬','🪂','💺','🚁','🚟','🚠','🚡','🛰️',
+    '🚀','🛸','🌍','🌎','🌏','🌕','🌖','🌗','🌘','🌑',
+    '🌒','🌓','🌔','🌙','🌚','🌛','🌜','🌡️','☀️','🌝',
+    '🌞','🪐','⭐','🌟','🌠','🌌','☁️','⛅','⛈️','🌤️',
+    '🌥️','🌦️','🌧️','🌨️','🌩️','🌪️','🌫️','🌬️','🌀','🌈',
+    '🌂','☂️','☔','⛱️','⚡','❄️','☃️','⛄','☄️','🔥',
+    '💧','🌊','🎃','🎄','🎆','🎇','🧨','✨','🎈','🎉',
+    '🎊','🎋','🎍','🎎','🎏','🎐','🎑','🧧','🎀','🎁',
+    '🎗️','🎟️','🎫','🎖️','🏆','🏅','🥇','🥈','🥉','⚽',
+    '⚾','🥎','🏀','🏐','🏈','🏉','🎾','🥏','🎳','🏏',
+    '🏑','🏒','🥍','🏓','🏸','🥊','🥋','🥅','⛳','⛸️',
+    '🎣','🤿','🎿','🛷','🥌','🎯','🪀','🪁','🎱','🔮',
+    '🪄','🧿','🎮','🕹️','🎰','🎲','🧩','🧸','🪅','🪩',
+    '🪆','♠️','♥️','♦️','♣️','♟️','🃏','🀄','🎴','🎭',
+    '🖼️','🎨','🧵','🪡','🧶','🪢','👓','🕶️','🥽','🥼',
+    '🦺','👔','👕','👖','🧣','🧤','🧥','🧦','👗','👘',
+    '🥻','🩱','🩲','🩳','👙','👚','🪭','👛','👜','👝',
+    '🧳',' heels','👡','🥿','👢','👞','👟','🥾','🥿','🛹',
+    '🛼','🪷','🌺','🌻','🌹','🌷','🌸','💐','🌾','🌿',
+    '☘️','🍀','🍁','🍂','🍃','🪹','🪺','🍄','🌰','🦩',
+    '🦜','🦚','🦤','🦢','🦩','🕊️','🐇','🦝','🦨','🦡',
+    '🦫','🦦','🦥','🐁','🐀','🐿️','🦔','🐾','🐉','🐲',
+    '🦕','🦖','🐳','🐋','🐬','🦭','🐟','🐠','🐡','🦈',
+    '🐙','🐚','🪸','🪼','🦀','🦞','🦐','🦑','🦦','🦥',
+    '🐝','🪲','🐞','🦗','🪳','🦟','🦠','🪱','🦟','🦠',
+    '🐌','🦋','🐛','🐜','🪰','🪱','🪲','🪳','🦟','🦗',
+    '🕷️','🦂','🐢','🐍','🦎','🦂','🦖','🦕','🐙','🦑',
+    '🦐','🦞','🦀','🐡','🐠','🐟','🐬','🐳','🐋','🦈',
+    '🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦣','🦏','🦛',
+    '🐪','🐫','🦒','🦘','🦬','🐃','🐂','🐄','🐎','🐖',
+    '🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐕‍🦺','🐈',
+    '🐈‍⬛','🪶','🐓','🦃','🦤','🦚','🦜','🦢','🦩','🕊️',
+    '🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️',
+    '🦔','🫎','🫏'
+];
 
 function initEmojiPicker() {
     const grid = document.getElementById('emojiGrid');
@@ -99,23 +191,6 @@ function watchTyping() {
         }
     });
 }
-
-document.getElementById('messageInput').addEventListener('input', () => {
-    setTyping(true);
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => setTyping(false), 2000);
-});
-
-document.getElementById('messageInput').addEventListener('keydown', () => {
-    setTyping(true);
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => setTyping(false), 2000);
-});
-
-document.getElementById('messageInput').addEventListener('keyup', () => {
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => setTyping(false), 2000);
-});
 
 // ===== DATE SEPARATORS =====
 function getDateLabel(timestamp) {
@@ -229,22 +304,43 @@ function createMessageElement(id, msg) {
     // Swipe right to reply
     let startX = 0;
     let swiping = false;
+    let replyIndicator = null;
+
     div.addEventListener('touchstart', (e) => {
         startX = e.touches[0].clientX;
         swiping = false;
     });
+
     div.addEventListener('touchmove', (e) => {
         const diff = e.touches[0].clientX - startX;
         if (diff > 10) {
             swiping = true;
             div.style.transform = `translateX(${Math.min(diff * 0.5, 80)}px)`;
             div.style.transition = 'none';
+
+            // Show reply indicator
+            if (!replyIndicator) {
+                replyIndicator = document.createElement('div');
+                replyIndicator.className = 'swipe-reply-indicator';
+                replyIndicator.innerHTML = '&#8618;';
+                div.prepend(replyIndicator);
+            }
+            const opacity = Math.min((diff - 10) / 60, 1);
+            replyIndicator.style.opacity = opacity;
         }
     });
+
     div.addEventListener('touchend', () => {
         const currentTranslate = div.style.transform;
         div.style.transition = 'transform 0.2s ease';
         div.style.transform = '';
+
+        // Remove reply indicator
+        if (replyIndicator) {
+            replyIndicator.remove();
+            replyIndicator = null;
+        }
+
         if (swiping) {
             const match = currentTranslate.match(/translateX\((.+)px\)/);
             if (match && parseFloat(match[1]) > 50) {
@@ -283,8 +379,9 @@ function createMessageElement(id, msg) {
     let replyHtml = '';
     if (msg.replyTo) {
         const replyName = msg.replyTo.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
+        const replyToId = msg.replyTo.id || '';
         replyHtml = `
-            <div class="msg-reply">
+            <div class="msg-reply" data-reply-to="${replyToId}" onclick="scrollToMessage('${replyToId}')">
                 <div class="msg-reply-name">${replyName}</div>
                 <div class="msg-reply-text">${escapeHtml(msg.replyTo.text || (msg.replyTo.type === 'image' ? '📷 Photo' : msg.replyTo.type === 'audio' ? '🎤 Voice' : msg.replyTo.type === 'video' ? '🎬 Video' : '📎 File'))}</div>
             </div>
@@ -440,6 +537,7 @@ function sendMessage() {
 
     if (replyingTo) {
         msgData.replyTo = {
+            id: replyingTo.id,
             sender: replyingTo.sender,
             text: replyingTo.text,
             type: replyingTo.type
@@ -452,10 +550,26 @@ function sendMessage() {
     cancelReply();
     input.focus();
     setTyping(false);
+    toggleMicSend();
+    autoResize(input);
 }
 
-document.getElementById('messageInput').addEventListener('keypress', function(e) {
-    if (e.key === 'Enter') sendMessage();
+// Textarea: Enter sends, Shift+Enter new line
+document.getElementById('messageInput').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+    }
+});
+
+// Auto-resize textarea
+function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+document.getElementById('messageInput').addEventListener('input', function() {
+    autoResize(this);
 });
 
 // Close pickers on outside click
@@ -556,6 +670,7 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
 
     if (replyingTo) {
         msgData.replyTo = {
+            id: replyingTo.id,
             sender: replyingTo.sender,
             text: replyingTo.text,
             type: replyingTo.type
@@ -730,6 +845,17 @@ function quickReact(id) {
         }
     };
     setTimeout(() => document.addEventListener('click', closeHandler), 100);
+}
+
+// ===== SCROLL TO MESSAGE =====
+function scrollToMessage(msgId) {
+    if (!msgId) return;
+    const el = document.getElementById('msg-' + msgId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('highlight-message');
+        setTimeout(() => el.classList.remove('highlight-message'), 2000);
+    }
 }
 
 // ===== UTILS =====
@@ -907,6 +1033,24 @@ function formatText(text) {
     // Inline code: `text`
     formatted = formatted.replace(/`(.+?)`/g, '<code>$1</code>');
     return formatted;
+}
+
+// ===== NOTIFICATIONS =====
+function requestNotificationPermission() {
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+}
+
+function showNotification(title, body) {
+    if ('Notification' in window && Notification.permission === 'granted') {
+        try {
+            new Notification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
+            });
+        } catch (e) {}
+    }
 }
 
 // ===== INIT =====

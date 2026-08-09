@@ -3,64 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#075e54">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Our Chat</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
 </head>
 <body class="chat-page">
     <div class="chat-container">
+        <!-- WhatsApp Header -->
         <div class="chat-header">
-            <span class="header-user" id="currentUser"></span>
-            <div class="header-center">
-                <span class="header-title">Our Chat</span>
+            <button class="header-back" onclick="window.location.href='index.html'" title="Back">&#8592;</button>
+            <div class="header-avatar" id="headerAvatar"></div>
+            <div class="header-info">
+                <span class="header-user" id="currentUser"></span>
+                <span class="header-status" id="headerStatus">Online</span>
             </div>
             <div class="header-actions">
-                <button class="search-btn" onclick="toggleSearch()" title="Search messages">&#128269;</button>
+                <button class="search-btn" onclick="toggleSearch()" title="Search">&#128269;</button>
                 <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="Toggle dark mode">&#9790;</button>
-                <button class="switch-btn" onclick="switchUser()">Switch</button>
+                <button class="switch-btn" onclick="switchUser()" title="Switch user">&#8644;</button>
             </div>
         </div>
 
         <!-- Search Bar -->
         <div class="search-bar" id="searchBar" style="display:none;">
             <input type="text" id="searchInput" placeholder="Search messages..." autocomplete="off">
-            <button class="search-close-btn" onclick="toggleSearch()">✕</button>
+            <button class="search-close-btn" onclick="toggleSearch()">&#10005;</button>
         </div>
 
-        <!-- Reply Preview -->
+        <!-- Messages -->
+        <div class="messages-area" id="messagesArea">
+            <div class="loading" id="loading">Loading messages...</div>
+        </div>
+
+        <!-- Typing Indicator -->
+        <div class="typing-indicator-bottom" id="typingIndicator" style="display:none;"></div>
+
+        <!-- Upload Progress -->
+        <div class="upload-progress" id="uploadProgress" style="display:none;">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            <span class="progress-text" id="progressText">Uploading...</span>
+        </div>
+
+        <!-- Reply Preview (above input like WhatsApp) -->
         <div class="reply-preview" id="replyPreview" style="display:none;">
             <div class="reply-bar-left"></div>
             <div class="reply-content">
                 <span class="reply-name" id="replyName"></span>
                 <span class="reply-text" id="replyText"></span>
             </div>
-            <button class="reply-close" onclick="cancelReply()">✕</button>
+            <button class="reply-close" onclick="cancelReply()">&#10005;</button>
         </div>
 
-        <div class="messages-area" id="messagesArea">
-            <div class="loading" id="loading">Loading messages...</div>
-        </div>
-
-        <div class="typing-indicator-bottom" id="typingIndicator" style="display:none;"></div>
-
-        <div class="upload-progress" id="uploadProgress" style="display:none;">
-            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-            <span class="progress-text" id="progressText">Uploading...</span>
-        </div>
-
+        <!-- Input Area -->
         <div class="input-area">
             <input type="file" id="fileInput" style="display:none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
-            <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">&#128206;</button>
             <button class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPicker()" title="Emoji">&#128522;</button>
-            <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
-            <button class="send-btn" onclick="sendMessage()">&#10148;</button>
-        </div>
-
-        <div class="input-area-2">
+            <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">&#128206;</button>
+            <textarea id="messageInput" placeholder="Type a message" rows="1" autocomplete="off"></textarea>
             <button class="mic-btn" id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Hold to record voice">&#127908;</button>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#10148;</button>
         </div>
 
         <!-- Emoji Picker -->
@@ -71,20 +75,20 @@
         <!-- Reaction Picker -->
         <div class="reaction-picker" id="reactionPicker" style="display:none;">
             <div class="reaction-quick">
-                <button class="reaction-option" onclick="submitQuickReaction('❤️')">❤️</button>
-                <button class="reaction-option" onclick="submitQuickReaction('😂')">😂</button>
-                <button class="reaction-option" onclick="submitQuickReaction('🔥')">🔥</button>
-                <button class="reaction-option" onclick="submitQuickReaction('👍')">👍</button>
-                <button class="reaction-option" onclick="submitQuickReaction('😘')">😘</button>
-                <button class="reaction-option" onclick="submitQuickReaction('😢')">😢</button>
-                <button class="reaction-option reaction-more-btn" onclick="toggleEmojiGrid(event)">➕</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#10084;&#65039;')">&#10084;&#65039;</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#128514;')">&#128514;</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#128293;')">&#128293;</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#128077;')">&#128077;</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#128084;')">&#128084;</button>
+                <button class="reaction-option" onclick="submitQuickReaction('&#128548;')">&#128548;</button>
+                <button class="reaction-option reaction-more-btn" onclick="toggleEmojiGrid(event)">+</button>
             </div>
-            <div class="emoji-grid" id="reactEmojiGrid" style="display:none;"></div>
+            <div class="reaction-emoji-grid" id="reactEmojiGrid" style="display:none;"></div>
         </div>
 
         <!-- Recording Indicator -->
         <div class="recording-indicator" id="recordingIndicator" style="display:none;">
-            <span class="rec-dot"></span> Recording... <span id="recTimer">0:00</span> — Release to send
+            <span class="rec-dot"></span> Recording... <span id="recTimer">0:00</span> &#8212; Release to send
         </div>
 
         <!-- Toast -->
