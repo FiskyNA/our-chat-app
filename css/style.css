@@ -371,19 +371,25 @@ body.dark .date-separator span {
 }
 
 /* Action Buttons */
+.msg-actions {
+    display: flex;
+    gap: 0.1rem;
+    margin-top: 0.2rem;
+}
+
 .msg-copy-btn, .msg-reply-btn, .msg-react-btn, .msg-edit-btn, .msg-delete-btn {
     background: none;
     border: none;
     color: rgba(255,255,255,0.5);
-    font-size: 0.8rem;
+    font-size: 0.75rem;
     cursor: pointer;
-    padding: 0.15rem 0.2rem;
+    padding: 0.15rem 0.25rem;
     border-radius: 6px;
     transition: all 0.15s;
     flex-shrink: 0;
     line-height: 1;
-    min-width: 22px;
-    min-height: 22px;
+    min-width: 24px;
+    min-height: 24px;
     display: flex;
     align-items: center;
     justify-content: center;

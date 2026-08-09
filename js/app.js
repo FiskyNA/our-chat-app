@@ -259,8 +259,8 @@ function createMessageElement(id, msg) {
             ${mediaHtml}
             ${replyHtml}
             ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
-            ${actionBtns}
         </div>
+        <div class="msg-actions">${actionBtns}</div>
         ${reactionsHtml}
         <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
     `;
