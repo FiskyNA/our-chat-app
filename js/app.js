@@ -178,18 +178,6 @@ function createMessageElement(id, msg) {
         ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : '';
 
-    // Long press for context menu
-    let pressTimer;
-    div.addEventListener('touchstart', (e) => {
-        pressTimer = setTimeout(() => showContextMenu(e, id, msg), 500);
-    });
-    div.addEventListener('touchend', () => clearTimeout(pressTimer));
-    div.addEventListener('touchmove', () => clearTimeout(pressTimer));
-    div.addEventListener('contextmenu', (e) => {
-        e.preventDefault();
-        showContextMenu(e, id, msg);
-    });
-
     // Deleted messages
     if (msg.deleted) {
         const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
@@ -230,6 +218,19 @@ function createMessageElement(id, msg) {
     const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
 
     let actionBtns = '';
+
+    // Copy button - for all messages
+    if (msg.text) {
+        actionBtns += `<button class="msg-copy-btn" onclick="event.stopPropagation(); copyMsgText('${id}')" title="Copy">&#128203;</button>`;
+    }
+
+    // Reply button - for all messages
+    actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">&#128172;</button>`;
+
+    // React button - for all messages
+    actionBtns += `<button class="msg-react-btn" onclick="event.stopPropagation(); quickReact('${id}')" title="React">&#128150;</button>`;
+
+    // Edit & Delete - only for own text messages
     if (isOwn) {
         if (msg.type === 'text' && msg.text) {
             actionBtns += `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`;
@@ -620,6 +621,51 @@ function showToast(text) {
     toast.textContent = text;
     toast.style.display = 'block';
     setTimeout(() => toast.style.display = 'none', 1500);
+}
+
+// ===== QUICK ACTIONS (Button-based) =====
+function copyMsgText(id) {
+    const el = document.getElementById('msg-' + id);
+    if (!el) return;
+    const textEl = el.querySelector('.message-text');
+    if (textEl) {
+        navigator.clipboard.writeText(textEl.textContent).then(() => showToast('Copied!'));
+    }
+}
+
+function quickReply(id) {
+    const msgRef = db.collection('messages').doc(id);
+    msgRef.get().then(doc => {
+        const msg = doc.data();
+        replyingTo = {
+            id: id,
+            sender: msg.sender,
+            text: msg.text || '',
+            type: msg.type || 'text'
+        };
+        const preview = document.getElementById('replyPreview');
+        document.getElementById('replyName').textContent = msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
+        document.getElementById('replyText').textContent = msg.text || (msg.type === 'image' ? '📷 Photo' : msg.type === 'audio' ? '🎤 Voice' : msg.type === 'video' ? '🎬 Video' : '📎 File');
+        preview.style.display = 'flex';
+        document.getElementById('messageInput').focus();
+    });
+}
+
+function quickReact(id) {
+    selectedMessageId = id;
+    const picker = document.getElementById('reactionPicker');
+    picker.style.display = 'flex';
+
+    const msgEl = document.getElementById('msg-' + id);
+    if (msgEl) {
+        const rect = msgEl.getBoundingClientRect();
+        picker.style.bottom = (window.innerHeight - rect.top + 10) + 'px';
+        picker.style.left = '50%';
+    }
+
+    setTimeout(() => {
+        document.addEventListener('click', closeReactionPicker, { once: true });
+    }, 100);
 }
 
 // ===== UTILS =====

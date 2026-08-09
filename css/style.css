@@ -371,25 +371,25 @@ body.dark .date-separator span {
 }
 
 /* Action Buttons */
-.msg-edit-btn, .msg-delete-btn {
+.msg-copy-btn, .msg-reply-btn, .msg-react-btn, .msg-edit-btn, .msg-delete-btn {
     background: none;
     border: none;
     color: rgba(255,255,255,0.5);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     cursor: pointer;
-    padding: 0.15rem 0.25rem;
+    padding: 0.15rem 0.2rem;
     border-radius: 6px;
     transition: all 0.15s;
     flex-shrink: 0;
     line-height: 1;
-    min-width: 24px;
-    min-height: 24px;
+    min-width: 22px;
+    min-height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
-.msg-edit-btn:active, .msg-delete-btn:active {
+.msg-copy-btn:active, .msg-reply-btn:active, .msg-react-btn:active, .msg-edit-btn:active, .msg-delete-btn:active {
     color: #fff;
     background: rgba(255,255,255,0.2);
 }
