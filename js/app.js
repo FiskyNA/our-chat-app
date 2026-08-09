@@ -70,25 +70,18 @@ db.collection('messages')
             }
 
             const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
+            const editBtn = msg.sender === currentUser && msg.type === 'text' && msg.text
+                ? `<button class="msg-edit-btn" onclick="event.stopPropagation(); openEditModal('${doc.id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">&#9998;</button>`
+                : '';
 
             div.innerHTML = `
-                ${mediaHtml}
-                ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
+                <div class="message-row">
+                    ${mediaHtml}
+                    ${msg.text ? `<div class="message-text">${escapeHtml(msg.text)}</div>` : ''}
+                    ${editBtn}
+                </div>
                 <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${editedLabel}</div>
             `;
-
-            // Only allow editing own text messages
-            if (msg.sender === currentUser && msg.type === 'text' && msg.text) {
-                div.style.cursor = 'pointer';
-                div.addEventListener('dblclick', () => openEditModal(doc.id, msg.text));
-                // Long press for mobile
-                let pressTimer;
-                div.addEventListener('touchstart', (e) => {
-                    pressTimer = setTimeout(() => openEditModal(doc.id, msg.text), 500);
-                });
-                div.addEventListener('touchend', () => clearTimeout(pressTimer));
-                div.addEventListener('touchmove', () => clearTimeout(pressTimer));
-            }
 
             messagesArea.appendChild(div);
         });
