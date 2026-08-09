@@ -34,6 +34,13 @@ if (localStorage.getItem('darkMode') === 'true') {
 document.getElementById('currentUser').textContent =
     currentUser === 'hubby' ? 'Hubby' : 'Wifeyy';
 
+// Register service worker for notifications
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js')
+        .then(reg => console.log('SW registered'))
+        .catch(err => console.log('SW error:', err));
+}
+
 // Listen for messages in real-time
 db.collection('messages')
     .orderBy('timestamp')
@@ -213,7 +220,6 @@ function compressImage(dataUrl, fileName, progressEl, progressFill, progressText
         const canvas = document.createElement('canvas');
         let { width, height } = img;
 
-        // Max dimensions
         const MAX = 800;
         if (width > MAX || height > MAX) {
             if (width > height) {
@@ -230,10 +236,8 @@ function compressImage(dataUrl, fileName, progressEl, progressFill, progressText
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
 
-        // Compress to JPEG
         let compressed = canvas.toDataURL('image/jpeg', 0.7);
 
-        // If still too big (>500KB), compress more
         if (compressed.length > 640000) {
             compressed = canvas.toDataURL('image/jpeg', 0.4);
         }
@@ -333,7 +337,6 @@ function startRecording() {
 
                 const audioBlob = new Blob(audioChunks, { type: mimeType });
 
-                // Convert to base64
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     const progressEl = document.getElementById('uploadProgress');
@@ -389,10 +392,8 @@ function stopRecording(e) {
     }
 }
 
-// Prevent context menu on mic button
 document.getElementById('micBtn').addEventListener('contextmenu', e => e.preventDefault());
 
-// Lightbox for images
 function openLightbox(url) {
     const lb = document.createElement('div');
     lb.className = 'lightbox';
@@ -418,6 +419,7 @@ function toggleTheme() {
 function showNotification(text, sender) {
     const name = sender === 'hubby' ? 'Hubby' : 'Wifeyy';
 
+    // Play notification sound
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
@@ -434,17 +436,33 @@ function showNotification(text, sender) {
         }, 150);
     } catch (e) {}
 
+    // Browser notification
     if (Notification.permission === 'granted') {
-        new Notification(`${name} sent a message`, { body: text });
+        const notif = new Notification(`${name} sent a message`, {
+            body: text,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💌</text></svg>',
+            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💌</text></svg>',
+            vibrate: [200, 100, 200],
+            tag: 'chat-message',
+            renotify: true
+        });
+
+        notif.onclick = () => {
+            window.focus();
+            notif.close();
+        };
+    }
+
+    // Also try to vibrate the device
+    if (navigator.vibrate) {
+        navigator.vibrate([200, 100, 200]);
     }
 }
 
-document.addEventListener('click', function requestNotif() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-    document.removeEventListener('click', requestNotif);
-});
+// Request notification permission immediately
+if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+}
 
 function openEditModal(messageId, currentText) {
     editingMessageId = messageId;
