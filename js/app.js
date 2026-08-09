@@ -38,8 +38,8 @@ if (localStorage.getItem('darkMode') === 'true') {
     document.getElementById('themeBtn').innerHTML = '&#9728;';
 }
 
-document.getElementById('currentUser').textContent = currentName;
-document.getElementById('headerAvatar').innerHTML = currentUser === 'hubby' ? '&#128104;' : '&#128105;';
+document.getElementById('currentUser').textContent = otherName;
+document.getElementById('headerAvatar').innerHTML = currentUser === 'hubby' ? '&#128105;' : '&#128104;';
 
 // ===== MIC/SEND TOGGLE =====
 const messageInput = document.getElementById('messageInput');
