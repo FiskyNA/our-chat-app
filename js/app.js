@@ -49,7 +49,8 @@ db.collection('messages')
         snapshot.forEach(doc => {
             const msg = doc.data();
             const div = document.createElement('div');
-            div.classList.add('message', msg.sender);
+            const isOwn = msg.sender === currentUser;
+            div.classList.add('message', isOwn ? 'own' : 'other', msg.sender);
 
             const time = msg.timestamp
                 ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
@@ -83,7 +84,6 @@ db.collection('messages')
             }
 
             const editedLabel = msg.edited ? ' · <span class="edited-label">edited</span>' : '';
-            const isOwn = msg.sender === currentUser;
 
             let actionBtns = '';
             if (isOwn) {
