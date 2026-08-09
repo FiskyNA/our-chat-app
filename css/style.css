@@ -258,16 +258,16 @@ html, body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Own messages - right side like WhatsApp */
+/* Own messages - left side */
 .message.own {
-    align-self: flex-end;
-    border-bottom-right-radius: 4px;
-}
-
-/* Other person's messages - left side */
-.message.other {
     align-self: flex-start;
     border-bottom-left-radius: 4px;
+}
+
+/* Other person's messages - right side */
+.message.other {
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
 }
 
 /* Bubble colors by sender */
