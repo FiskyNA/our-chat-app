@@ -301,13 +301,26 @@ function createMessageElement(id, msg) {
     if (msg.text) {
         menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); copyMsgText('${id}')">📋 Copy</button>`;
     }
-    menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); togglePin('${id}')">📌 ${msg.pinned ? 'Unpin' : 'Pin'}</button>`;
-    menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); toggleStar('${id}')">⭐ ${msg.starred ? 'Unstar' : 'Star'}</button>`;
     if (isOwn && msg.type === 'text' && msg.text) {
         menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">✏️ Edit</button>`;
     }
     if (isOwn) {
         menuItems += `<button class="dropdown-item dropdown-delete" onclick="event.stopPropagation(); deleteMessage('${id}')">🗑️ Delete</button>`;
+    }
+
+    let reactionsHtml = '';
+    if (msg.reactions && Object.keys(msg.reactions).length > 0) {
+        const reactionCounts = {};
+        for (const [user, emoji] of Object.entries(msg.reactions)) {
+            if (!reactionCounts[emoji]) reactionCounts[emoji] = { count: 0, byMe: false };
+            reactionCounts[emoji].count++;
+            if (user === currentUser) reactionCounts[emoji].byMe = true;
+        }
+        reactionsHtml = '<div class="msg-reactions">';
+        for (const [emoji, data] of Object.entries(reactionCounts)) {
+            reactionsHtml += `<button class="msg-reaction ${data.byMe ? 'reacted' : ''}" onclick="event.stopPropagation(); toggleReaction('${id}', '${emoji}')">${emoji} ${data.count > 1 ? data.count : ''}</button>`;
+        }
+        reactionsHtml += '</div>';
     }
 
     div.innerHTML = `
@@ -320,7 +333,7 @@ function createMessageElement(id, msg) {
         ${msg.text && msg.text.length > 150 ? '<button class="read-more-btn" onclick="toggleReadMore(this)">Read more...</button>' : ''}
         ${reactionsHtml}
         <div class="message-footer">
-            <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${readTick}${pinnedLabel}${editedLabel}</div>
+            <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${readTick}${editedLabel}</div>
             <div class="msg-dropdown-wrap">
                 <button class="msg-dropdown-btn" onclick="event.stopPropagation(); toggleDropdown(this)">⋮</button>
                 <div class="msg-dropdown">${menuItems}</div>
@@ -747,84 +760,6 @@ function toggleReadMore(btn) {
     }
 }
 
-function togglePin(messageId) {
-    const msgRef = db.collection('messages').doc(messageId);
-    msgRef.get().then(doc => {
-        const data = doc.data();
-        msgRef.update({ pinned: !data.pinned });
-        if (!data.pinned) {
-            showToast('Message pinned');
-        } else {
-            showToast('Message unpinned');
-        }
-    });
-    document.querySelectorAll('.msg-dropdown').forEach(d => d.style.display = 'none');
-}
-
-function toggleStar(messageId) {
-    const msgRef = db.collection('messages').doc(messageId);
-    msgRef.get().then(doc => {
-        const data = doc.data();
-        msgRef.update({ starred: !data.starred });
-    });
-    document.querySelectorAll('.msg-dropdown').forEach(d => d.style.display = 'none');
-}
-
-// ===== PINNED BAR =====
-function watchPinnedMessage() {
-    db.collection('messages')
-        .where('pinned', '==', true)
-        .orderBy('timestamp', 'desc')
-        .limit(1)
-        .onSnapshot(snapshot => {
-            const bar = document.getElementById('pinnedBar');
-            if (snapshot.empty) {
-                bar.style.display = 'none';
-                return;
-            }
-            const doc = snapshot.docs[0];
-            const msg = doc.data();
-            const pinnedId = doc.id;
-            const sender = msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
-            document.getElementById('pinnedBy').textContent = sender;
-            document.getElementById('pinnedText').textContent = msg.text || (msg.type === 'image' ? '📷 Photo' : msg.type === 'audio' ? '🎤 Voice' : msg.type === 'video' ? '🎬 Video' : '📎 File');
-            bar.style.display = 'flex';
-            bar.dataset.pinnedId = pinnedId;
-        });
-}
-
-function scrollToPinned() {
-    const bar = document.getElementById('pinnedBar');
-    const pinnedId = bar.dataset.pinnedId;
-    if (!pinnedId) return;
-    const el = document.getElementById('msg-' + pinnedId);
-    if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        el.classList.add('highlight-pinned');
-        setTimeout(() => el.classList.remove('highlight-pinned'), 2000);
-    }
-}
-
-function unpinMessage() {
-    const bar = document.getElementById('pinnedBar');
-    const pinnedId = bar.dataset.pinnedId;
-    if (!pinnedId) return;
-    db.collection('messages').doc(pinnedId).update({ pinned: false });
-}
-
-// ===== NOTIFICATIONS =====
-function requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
-    }
-}
-
-function showNotification(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted' && document.hidden) {
-        new Notification(title, { body: body, icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>' });
-    }
-}
-
 // ===== LINK PREVIEW =====
 function extractUrl(text) {
     const regex = /(https?:\/\/[^\s]+)/gi;
@@ -978,251 +913,7 @@ function formatText(text) {
 initEmojiPicker();
 initTyping();
 watchTyping();
-watchPinnedMessage();
 requestNotificationPermission();
-watchIncomingCalls();
-
-// ===== VOICE/VIDEO CALL =====
-let localStream = null;
-let peerConnection = null;
-let callId = null;
-let callType = 'audio';
-let callTimerInterval = null;
-let callSeconds = 0;
-let isMuted = false;
-
-const iceServers = {
-    iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
-    ]
-};
-
-function startCall(type) {
-    callType = type;
-    callId = currentUser + '_' + Date.now();
-
-    navigator.mediaDevices.getUserMedia({ video: type === 'video', audio: true })
-        .then(stream => {
-            localStream = stream;
-            showCallUI(type);
-            createOffer();
-        })
-        .catch(() => {
-            showToast('Camera/microphone access denied');
-        });
-}
-
-function showCallUI(type) {
-    const overlay = document.getElementById('callOverlay');
-    document.getElementById('callName').textContent = otherName;
-    document.getElementById('callStatus').textContent = 'Calling...';
-    document.getElementById('callTimer').style.display = 'none';
-    document.getElementById('callMuteBtn').textContent = '🎤';
-    document.getElementById('callSwitchBtn').style.display = type === 'video' ? 'flex' : 'none';
-    document.getElementById('remoteVideo').style.display = type === 'video' ? 'block' : 'none';
-    overlay.style.display = 'flex';
-}
-
-function createOffer() {
-    peerConnection = new RTCPeerConnection(iceServers);
-
-    localStream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, localStream);
-    });
-
-    peerConnection.ontrack = (event) => {
-        document.getElementById('remoteVideo').srcObject = event.streams[0];
-    };
-
-    peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-            db.collection('calls').doc(callId).set({
-                caller: currentUser,
-                type: callType,
-                candidate: event.candidate.toJSON(),
-                status: 'calling'
-            }, { merge: true });
-        }
-    };
-
-    peerConnection.createOffer()
-        .then(offer => peerConnection.setLocalDescription(offer))
-        .then(() => {
-            db.collection('calls').doc(callId).set({
-                caller: currentUser,
-                type: callType,
-                offer: peerConnection.localDescription.toJSON(),
-                status: 'calling'
-            });
-            watchCallAnswer();
-        });
-}
-
-function watchCallAnswer() {
-    db.collection('calls').doc(callId).onSnapshot(doc => {
-        const data = doc.data();
-        if (!data) return;
-
-        if (data.status === 'answered' && data.answer && peerConnection) {
-            peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
-            document.getElementById('callStatus').textContent = 'Connected';
-            startCallTimer();
-        }
-
-        if (data.candidate && peerConnection) {
-            peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-        }
-
-        if (data.status === 'ended') {
-            cleanupCall();
-        }
-    });
-}
-
-function watchIncomingCalls() {
-    db.collection('calls')
-        .where('caller', '==', otherUser)
-        .where('status', '==', 'calling')
-        .onSnapshot(snapshot => {
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                if (data.caller === otherUser) {
-                    callId = doc.id;
-                    callType = data.type;
-                    showIncomingCall(data);
-                }
-            });
-        });
-}
-
-function showIncomingCall(data) {
-    document.getElementById('incomingCaller').textContent = '👤';
-    document.getElementById('incomingCallerName').textContent = otherName;
-    document.getElementById('incomingCallType').textContent = data.type === 'video' ? '📹 Incoming video call...' : '📞 Incoming voice call...';
-    document.getElementById('incomingCall').style.display = 'flex';
-}
-
-function acceptCall() {
-    document.getElementById('incomingCall').style.display = 'none';
-
-    navigator.mediaDevices.getUserMedia({ video: callType === 'video', audio: true })
-        .then(stream => {
-            localStream = stream;
-            showCallUI(callType);
-
-            peerConnection = new RTCPeerConnection(iceServers);
-
-            localStream.getTracks().forEach(track => {
-                peerConnection.addTrack(track, localStream);
-            });
-
-            peerConnection.ontrack = (event) => {
-                document.getElementById('remoteVideo').srcObject = event.streams[0];
-            };
-
-            peerConnection.onicecandidate = (event) => {
-                if (event.candidate) {
-                    db.collection('calls').doc(callId).update({
-                        candidate: event.candidate.toJSON()
-                    });
-                }
-            };
-
-            db.collection('calls').doc(callId).get().then(doc => {
-                const data = doc.data();
-                peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
-
-                peerConnection.createAnswer()
-                    .then(answer => peerConnection.setLocalDescription(answer))
-                    .then(() => {
-                        db.collection('calls').doc(callId).update({
-                            answer: peerConnection.localDescription.toJSON(),
-                            status: 'answered'
-                        });
-                        document.getElementById('callStatus').textContent = 'Connected';
-                        startCallTimer();
-                    });
-            });
-
-            db.collection('calls').doc(callId).onSnapshot(doc => {
-                const data = doc.data();
-                if (data && data.candidate && peerConnection) {
-                    peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
-                }
-                if (data && data.status === 'ended') {
-                    cleanupCall();
-                }
-            });
-        })
-        .catch(() => {
-            showToast('Camera/microphone access denied');
-        });
-}
-
-function declineCall() {
-    document.getElementById('incomingCall').style.display = 'none';
-    if (callId) {
-        db.collection('calls').doc(callId).update({ status: 'ended' });
-    }
-}
-
-function endCall() {
-    if (callId) {
-        db.collection('calls').doc(callId).update({ status: 'ended' });
-    }
-    cleanupCall();
-}
-
-function cleanupCall() {
-    if (peerConnection) { peerConnection.close(); peerConnection = null; }
-    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
-    if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
-    callId = null;
-    callSeconds = 0;
-    document.getElementById('callOverlay').style.display = 'none';
-    document.getElementById('incomingCall').style.display = 'none';
-    document.getElementById('remoteVideo').srcObject = null;
-}
-
-function toggleMute() {
-    if (!localStream) return;
-    isMuted = !isMuted;
-    localStream.getAudioTracks().forEach(t => { t.enabled = !isMuted; });
-    document.getElementById('callMuteBtn').textContent = isMuted ? '🔇' : '🎤';
-}
-
-function switchCamera() {
-    if (!localStream) return;
-    const videoTrack = localStream.getVideoTracks()[0];
-    if (videoTrack) {
-        const settings = videoTrack.getSettings();
-        const newFacing = settings.facingMode === 'user' ? 'environment' : 'user';
-        navigator.mediaDevices.getUserMedia({ video: { facingMode: newFacing } })
-            .then(newStream => {
-                const newVideoTrack = newStream.getVideoTracks()[0];
-                peerConnection.getSenders().forEach(sender => {
-                    if (sender.track && sender.track.kind === 'video') {
-                        sender.replaceTrack(newVideoTrack);
-                    }
-                });
-                localStream.removeTrack(videoTrack);
-                localStream.addTrack(newVideoTrack);
-                videoTrack.stop();
-            });
-    }
-}
-
-function startCallTimer() {
-    callSeconds = 0;
-    document.getElementById('callTimer').style.display = 'block';
-    callTimerInterval = setInterval(() => {
-        callSeconds++;
-        const min = Math.floor(callSeconds / 60).toString().padStart(2, '0');
-        const sec = (callSeconds % 60).toString().padStart(2, '0');
-        document.getElementById('callTimer').textContent = `${min}:${sec}`;
-    }, 1000);
-}
 
 // ===== SEARCH =====
 function toggleSearch() {
