@@ -106,6 +106,17 @@ document.getElementById('messageInput').addEventListener('input', () => {
     typingTimeout = setTimeout(() => setTyping(false), 2000);
 });
 
+document.getElementById('messageInput').addEventListener('keydown', () => {
+    setTyping(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => setTyping(false), 2000);
+});
+
+document.getElementById('messageInput').addEventListener('keyup', () => {
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => setTyping(false), 2000);
+});
+
 // ===== DATE SEPARATORS =====
 function getDateLabel(timestamp) {
     if (!timestamp) return '';
