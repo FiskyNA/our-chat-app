@@ -20,6 +20,7 @@ let audioChunks = [];
 let recordingTimer = null;
 let recordingSeconds = 0;
 let editingMessageId = null;
+let isRecording = false;
 
 if (!currentUser) {
     window.location.href = 'index.html';
@@ -51,20 +52,13 @@ db.collection('messages')
 
             let mediaHtml = '';
 
-            // Image
             if (msg.type === 'image' && msg.fileUrl) {
                 mediaHtml = `<div class="message-media"><img src="${msg.fileUrl}" onclick="openLightbox('${msg.fileUrl}')" alt="photo"></div>`;
-            }
-            // Video
-            else if (msg.type === 'video' && msg.fileUrl) {
+            } else if (msg.type === 'video' && msg.fileUrl) {
                 mediaHtml = `<div class="message-media"><video src="${msg.fileUrl}" controls preload="metadata"></video></div>`;
-            }
-            // Audio / Voice
-            else if (msg.type === 'audio' && msg.fileUrl) {
+            } else if (msg.type === 'audio' && msg.fileUrl) {
                 mediaHtml = `<div class="message-media"><audio src="${msg.fileUrl}" controls preload="metadata"></audio></div>`;
-            }
-            // Document / File
-            else if (msg.type === 'file' && msg.fileUrl) {
+            } else if (msg.type === 'file' && msg.fileUrl) {
                 const icon = getFileIcon(msg.fileName);
                 mediaHtml = `<div class="message-media"><a class="file-card" href="${msg.fileUrl}" target="_blank" download="${msg.fileName}"><span class="file-icon">${icon}</span><div class="file-info"><div class="file-name">${escapeHtml(msg.fileName)}</div><div class="file-size">${msg.fileSize || ''}</div></div></a></div>`;
             }
@@ -90,14 +84,13 @@ db.collection('messages')
             messagesArea.scrollTop = messagesArea.scrollHeight;
         }
 
-        // Notification for new messages from the other user (skip first load)
         if (!isFirstLoad && snapshot.docs.length > 0) {
             const lastDoc = snapshot.docs[snapshot.docs.length - 1];
             const lastData = lastDoc.data();
             const msgTime = lastData.timestamp ? lastData.timestamp.toMillis() : 0;
 
             if (lastData.sender !== currentUser && msgTime > lastNotificationTime) {
-                let notifText = 'Sent a file';
+                let notifText = 'Sent a message';
                 if (lastData.type === 'image') notifText = 'Sent a photo';
                 else if (lastData.type === 'video') notifText = 'Sent a video';
                 else if (lastData.type === 'audio') notifText = 'Sent a voice message';
@@ -139,7 +132,7 @@ document.getElementById('messageInput').addEventListener('keypress', function(e)
     if (e.key === 'Enter') sendMessage();
 });
 
-// File upload
+// File upload via click
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -156,7 +149,7 @@ function uploadFile(file) {
     progressFill.style.width = '0%';
     progressText.textContent = 'Uploading...';
 
-    const fileName = `${Date.now()}_${file.name}`;
+    const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
     const fileRef = storage.ref(`chat-files/${fileName}`);
     const uploadTask = fileRef.put(file);
 
@@ -167,6 +160,7 @@ function uploadFile(file) {
             progressText.textContent = `Uploading ${Math.round(pct)}%`;
         },
         (error) => {
+            console.error('Upload error:', error);
             progressEl.style.display = 'none';
             alert('Upload failed: ' + error.message);
         },
@@ -179,7 +173,7 @@ function uploadFile(file) {
                 else if (file.type.startsWith('video/')) type = 'video';
                 else if (file.type.startsWith('audio/')) type = 'audio';
 
-                db.collection('messages').add({
+                return db.collection('messages').add({
                     sender: currentUser,
                     text: '',
                     type: type,
@@ -188,6 +182,12 @@ function uploadFile(file) {
                     fileSize: formatFileSize(file.size),
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
+            }).then(() => {
+                progressEl.style.display = 'none';
+            }).catch(err => {
+                console.error('Error saving message:', err);
+                progressEl.style.display = 'none';
+                alert('Failed to save message: ' + err.message);
             });
         }
     );
@@ -202,19 +202,21 @@ function formatFileSize(bytes) {
 function getFileIcon(fileName) {
     const ext = fileName.split('.').pop().toLowerCase();
     const icons = {
-        pdf: '📄', doc: '📝', docx: '📝', txt: '📄',
-        zip: '🗜️', rar: '🗜️',
-        xls: '📊', xlsx: '📊', csv: '📊',
-        ppt: '📊', pptx: '📊',
-        mp3: '🎵', wav: '🎵', ogg: '🎵', m4a: '🎵',
-        mp4: '🎬', mov: '🎬', avi: '🎬', mkv: '🎬',
-        jpg: '🖼️', jpeg: '🖼️', png: '🖼️', gif: '🖼️', webp: '🖼️'
+        pdf: '\uD83D\uDCC4', doc: '\uD83D\uDCDD', docx: '\uD83D\uDCDD', txt: '\uD83D\uDCC4',
+        zip: '\uD83D\uDDDC\uFE0F', rar: '\uD83D\uDDDC\uFE0F',
+        xls: '\uD83D\uDCCA', xlsx: '\uD83D\uDCCA', csv: '\uD83D\uDCCA',
+        ppt: '\uD83D\uDCCA', pptx: '\uD83D\uDCCA',
+        mp3: '\uD83C\uDFB5', wav: '\uD83C\uDFB5', ogg: '\uD83C\uDFB5', m4a: '\uD83C\uDFB5',
+        mp4: '\uD83C\uDFAC', mov: '\uD83C\uDFAC', avi: '\uD83C\uDFAC', mkv: '\uD83C\uDFAC',
+        jpg: '\uD83D\uDDBC\uFE0F', jpeg: '\uD83D\uDDBC\uFE0F', png: '\uD83D\uDDBC\uFE0F', gif: '\uD83D\uDDBC\uFE0F', webp: '\uD83D\uDDBC\uFE0F'
     };
-    return icons[ext] || '📁';
+    return icons[ext] || '\uD83D\uDCC1';
 }
 
 // Voice recording
 function startRecording() {
+    if (isRecording) return;
+
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Voice recording not supported in this browser.');
         return;
@@ -222,23 +224,55 @@ function startRecording() {
 
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
+            isRecording = true;
             audioChunks = [];
-            mediaRecorder = new MediaRecorder(stream);
+
+            const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+                ? 'audio/webm;codecs=opus'
+                : (MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4');
+
+            mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
 
             mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) audioChunks.push(e.data);
+                if (e.data && e.data.size > 0) {
+                    audioChunks.push(e.data);
+                }
             };
 
             mediaRecorder.onstop = () => {
+                isRecording = false;
                 stream.getTracks().forEach(track => track.stop());
+
+                document.getElementById('micBtn').classList.remove('recording');
+                document.getElementById('recordingIndicator').style.display = 'none';
+
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+
                 if (audioChunks.length === 0) return;
 
-                const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-                const audioFile = new File([audioBlob], `voice_${Date.now()}.webm`, { type: 'audio/webm' });
+                const audioBlob = new Blob(audioChunks, { type: mimeType });
+                const ext = mimeType.includes('webm') ? 'webm' : 'm4a';
+                const audioFile = new File([audioBlob], `voice_${Date.now()}.${ext}`, { type: mimeType });
                 uploadFile(audioFile);
             };
 
-            mediaRecorder.start();
+            mediaRecorder.onerror = (e) => {
+                console.error('MediaRecorder error:', e);
+                isRecording = false;
+                stream.getTracks().forEach(track => track.stop());
+                document.getElementById('micBtn').classList.remove('recording');
+                document.getElementById('recordingIndicator').style.display = 'none';
+                if (recordingTimer) {
+                    clearInterval(recordingTimer);
+                    recordingTimer = null;
+                }
+                alert('Recording failed. Please try again.');
+            };
+
+            mediaRecorder.start(100);
 
             document.getElementById('micBtn').classList.add('recording');
             document.getElementById('recordingIndicator').style.display = 'flex';
@@ -253,7 +287,8 @@ function startRecording() {
             }, 1000);
         })
         .catch(err => {
-            alert('Microphone access denied.');
+            console.error('Microphone error:', err);
+            alert('Could not access microphone. Please allow microphone permission and try again.');
         });
 }
 
@@ -262,17 +297,9 @@ function stopRecording(e) {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
         mediaRecorder.stop();
     }
-
-    document.getElementById('micBtn').classList.remove('recording');
-    document.getElementById('recordingIndicator').style.display = 'none';
-
-    if (recordingTimer) {
-        clearInterval(recordingTimer);
-        recordingTimer = null;
-    }
 }
 
-// Prevent context menu on mic button (mobile long press)
+// Prevent context menu on mic button
 document.getElementById('micBtn').addEventListener('contextmenu', e => e.preventDefault());
 
 // Lightbox for images
@@ -294,7 +321,6 @@ function switchUser() {
 function showNotification(text, sender) {
     const name = sender === 'hubby' ? 'Hubby' : 'Wifeyy';
 
-    // Play notification sound
     try {
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = audioCtx.createOscillator();
@@ -311,13 +337,11 @@ function showNotification(text, sender) {
         }, 150);
     } catch (e) {}
 
-    // Browser notification
     if (Notification.permission === 'granted') {
         new Notification(`${name} sent a message`, { body: text });
     }
 }
 
-// Request notification permission on first interaction
 document.addEventListener('click', function requestNotif() {
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
