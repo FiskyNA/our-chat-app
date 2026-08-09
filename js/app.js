@@ -60,12 +60,162 @@ function toggleEmojiPicker() {
     picker.style.display = picker.style.display === 'none' ? 'block' : 'none';
     closeContextMenu();
     closeReactionPicker();
+    closeGifPicker();
+    closeStickerPicker();
 }
 
 function insertEmoji(emoji) {
     const input = document.getElementById('messageInput');
     input.value += emoji;
     input.focus();
+}
+
+// ===== GIF PICKER =====
+function toggleGifPicker() {
+    const picker = document.getElementById('gifPicker');
+    const isOpen = picker.style.display !== 'none';
+    closeAllPickers();
+    if (!isOpen) {
+        picker.style.display = 'block';
+        loadTrendingGifs();
+    }
+}
+
+function closeGifPicker() {
+    document.getElementById('gifPicker').style.display = 'none';
+}
+
+function closeStickerPicker() {
+    document.getElementById('stickerPicker').style.display = 'none';
+}
+
+function closeAllPickers() {
+    document.getElementById('emojiPicker').style.display = 'none';
+    document.getElementById('gifPicker').style.display = 'none';
+    document.getElementById('stickerPicker').style.display = 'none';
+    closeReactionPicker();
+    closeContextMenu();
+}
+
+async function loadTrendingGifs() {
+    const grid = document.getElementById('gifGrid');
+    grid.innerHTML = '<div class="gif-loading">Loading...</div>';
+    try {
+        const res = await fetch('https://tenor.googleapis.com/v2/featured?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=my_chat_app&limit=30&media_filter=gif');
+        const data = await res.json();
+        renderGifs(data.results || []);
+    } catch (e) {
+        grid.innerHTML = '<div class="gif-loading">Failed to load GIFs</div>';
+    }
+}
+
+async function searchGifs() {
+    const query = document.getElementById('gifSearchInput').value.trim();
+    if (!query) return;
+    const grid = document.getElementById('gifGrid');
+    grid.innerHTML = '<div class="gif-loading">Searching...</div>';
+    try {
+        const res = await fetch(`https://tenor.googleapis.com/v2/search?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=my_chat_app&q=${encodeURIComponent(query)}&limit=30&media_filter=gif`);
+        const data = await res.json();
+        renderGifs(data.results || []);
+    } catch (e) {
+        grid.innerHTML = '<div class="gif-loading">Search failed</div>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const gifInput = document.getElementById('gifSearchInput');
+    if (gifInput) {
+        gifInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') searchGifs();
+        });
+    }
+});
+
+function renderGifs(gifs) {
+    const grid = document.getElementById('gifGrid');
+    grid.innerHTML = '';
+    gifs.forEach(gif => {
+        const url = gif.media_formats?.gif?.url || gif.url;
+        if (!url) return;
+        const img = document.createElement('img');
+        img.className = 'gif-item';
+        img.src = url;
+        img.alt = 'gif';
+        img.loading = 'lazy';
+        img.onclick = () => sendGif(url);
+        grid.appendChild(img);
+    });
+}
+
+function sendGif(url) {
+    const msg = {
+        type: 'image',
+        fileData: url,
+        fileName: 'gif',
+        text: '',
+        sender: currentUser,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        reactions: {}
+    };
+    db.collection('messages').add(msg);
+    closeGifPicker();
+}
+
+// ===== STICKER PICKER =====
+const stickerSets = [
+    { category: 'Happy', stickers: ['😀','😃','😄','😁','😆','😅','🤣','😂','🙂','😊','😇','🥰','😍','🤩','😘','😗','😚','😙','🥲','😋','😛','😜','🤪','😝'] },
+    { category: 'Love', stickers: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❤️‍🔥','💕','💞','💓','💗','💖','💘','💝','💟','💋','😍','🥰','😘','💑'] },
+    { category: 'Gestures', stickers: ['👍','👎','👏','🙌','🤝','🙏','💪','🫶','✌️','🤞','🤟','🤘','🤙','👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🫵'] },
+    { category: 'Angry', stickers: ['😡','😠','🤬','💢','💥','👊','✊','😤','🤥','😒','🙄','😬','🤥','🫠','🤯','😵','😵‍💫','🤯','🤫','🤭','🫢','🧐','😕','🫤'] },
+    { category: 'Animals', stickers: ['🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🙈','🙉','🙊','🐒','🐔','🐧','🐦','🐤'] },
+    { category: 'Food', stickers: ['🍕','🍔','🍟','🌭','🍿','🧂','🥓','🥚','🍳','🥞','🧇','🥓','🥩','🍗','🍖','🌮','🌯','🫔','🥙','🧆','🥗','🫕','🥘','🍝'] },
+    { category: 'Nature', stickers: ['🌸','💐','🌷','🌹','🌺','🌻','🌼','🍀','🌿','🍃','🍂','🍁','🌾','🌵','🌴','🌳','🌲','🪵','🍄','🐚','🪸','🪨','🌊','⛅'] },
+    { category: 'Objects', stickers: ['🎉','🎊','🎈','🎁','🎀','🏆','⚽','🏀','🎮','🎲','🎯','🎨','🎸','🎤','🎧','📱','💻','⌨️','📷','🔑','💎','🔮','🪄','🧸'] }
+];
+
+function toggleStickerPicker() {
+    const picker = document.getElementById('stickerPicker');
+    const isOpen = picker.style.display !== 'none';
+    closeAllPickers();
+    if (!isOpen) {
+        picker.style.display = 'block';
+        loadStickers();
+    }
+}
+
+function loadStickers() {
+    const grid = document.getElementById('stickerGrid');
+    if (grid.children.length > 0) return;
+    grid.innerHTML = '';
+    stickerSets.forEach(set => {
+        const header = document.createElement('div');
+        header.className = 'sticker-category';
+        header.textContent = set.category;
+        grid.appendChild(header);
+        const row = document.createElement('div');
+        row.className = 'sticker-row';
+        set.stickers.forEach(s => {
+            const btn = document.createElement('button');
+            btn.className = 'sticker-btn-item';
+            btn.textContent = s;
+            btn.onclick = () => sendSticker(s);
+            row.appendChild(btn);
+        });
+        grid.appendChild(row);
+    });
+}
+
+function sendSticker(emoji) {
+    const msg = {
+        type: 'text',
+        text: emoji,
+        sender: currentUser,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        reactions: {}
+    };
+    db.collection('messages').add(msg);
+    closeStickerPicker();
 }
 
 // ===== TYPING INDICATOR =====
@@ -178,6 +328,34 @@ function createMessageElement(id, msg) {
         ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
         : '';
 
+    // Swipe right to reply
+    let startX = 0;
+    let swiping = false;
+    div.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        swiping = false;
+    });
+    div.addEventListener('touchmove', (e) => {
+        const diff = e.touches[0].clientX - startX;
+        if (diff > 10) {
+            swiping = true;
+            div.style.transform = `translateX(${Math.min(diff * 0.5, 80)}px)`;
+            div.style.transition = 'none';
+        }
+    });
+    div.addEventListener('touchend', () => {
+        const currentTranslate = div.style.transform;
+        div.style.transition = 'transform 0.2s ease';
+        div.style.transform = '';
+        if (swiping) {
+            const match = currentTranslate.match(/translateX\((.+)px\)/);
+            if (match && parseFloat(match[1]) > 50) {
+                quickReply(id);
+            }
+        }
+        swiping = false;
+    });
+
     // Deleted messages
     if (msg.deleted) {
         const deletedBy = msg.deletedBy === 'hubby' ? 'Hubby' : 'Wifeyy';
@@ -219,8 +397,8 @@ function createMessageElement(id, msg) {
 
     let actionBtns = '';
 
-    // Reply button - for all messages
-    actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">💬</button>`;
+    // Reply button - for all messages (WhatsApp-style arrow)
+    actionBtns += `<button class="msg-reply-btn" onclick="event.stopPropagation(); quickReply('${id}')" title="Reply">↩️</button>`;
 
     // React button - for all messages
     actionBtns += `<button class="msg-react-btn" onclick="event.stopPropagation(); quickReact('${id}')" title="React">❤️</button>`;

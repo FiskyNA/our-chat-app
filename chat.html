@@ -26,11 +26,12 @@
 
         <!-- Reply Preview -->
         <div class="reply-preview" id="replyPreview" style="display:none;">
+            <div class="reply-bar-left"></div>
             <div class="reply-content">
                 <span class="reply-name" id="replyName"></span>
                 <span class="reply-text" id="replyText"></span>
             </div>
-            <button class="reply-close" onclick="cancelReply()">&#10005;</button>
+            <button class="reply-close" onclick="cancelReply()">✕</button>
         </div>
 
         <div class="messages-area" id="messagesArea">
@@ -45,6 +46,8 @@
         <div class="input-area">
             <input type="file" id="fileInput" style="display:none" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt,.zip,.rar">
             <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">&#128206;</button>
+            <button class="gif-btn" id="gifBtn" onclick="toggleGifPicker()" title="GIF">GIF</button>
+            <button class="sticker-btn" id="stickerBtn" onclick="toggleStickerPicker()" title="Stickers">🏷️</button>
             <button class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPicker()" title="Emoji">&#128522;</button>
             <input type="text" id="messageInput" placeholder="Type a message..." autocomplete="off">
             <button class="send-btn" onclick="sendMessage()">&#10148;</button>
@@ -57,6 +60,20 @@
         <!-- Emoji Picker -->
         <div class="emoji-picker" id="emojiPicker" style="display:none;">
             <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+
+        <!-- GIF Picker -->
+        <div class="gif-picker" id="gifPicker" style="display:none;">
+            <div class="gif-search-bar">
+                <input type="text" id="gifSearchInput" placeholder="Search GIFs..." autocomplete="off">
+                <button class="gif-search-btn" onclick="searchGifs()">🔍</button>
+            </div>
+            <div class="gif-grid" id="gifGrid"></div>
+        </div>
+
+        <!-- Sticker Picker -->
+        <div class="sticker-picker" id="stickerPicker" style="display:none;">
+            <div class="sticker-grid" id="stickerGrid"></div>
         </div>
 
         <!-- Reaction Picker -->
