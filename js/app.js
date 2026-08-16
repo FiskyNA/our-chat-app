@@ -228,10 +228,16 @@ function filterEmojis() {
     });
 }
 
+let emojiPickerInit = false;
+
 function toggleEmojiPicker() {
     const picker = document.getElementById('emojiPicker');
     const search = document.getElementById('emojiSearch');
     if (picker.style.display === 'none') {
+        if (!emojiPickerInit) {
+            initEmojiPicker();
+            emojiPickerInit = true;
+        }
         picker.style.display = 'block';
         search.value = '';
         filterEmojis();
@@ -255,6 +261,7 @@ function insertEmoji(emoji) {
 
 // ===== TYPING INDICATOR =====
 let typingRef = null;
+let typingReceiverTimeout = null;
 
 function initTyping() {
     typingRef = db.collection('presence').doc(currentUser);
@@ -275,9 +282,16 @@ function watchTyping() {
         if (data && data.typing) {
             indicator.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div><span>${otherName} is typing</span>`;
             indicator.style.display = 'flex';
+
+            clearTimeout(typingReceiverTimeout);
+            typingReceiverTimeout = setTimeout(() => {
+                indicator.innerHTML = '';
+                indicator.style.display = 'none';
+            }, 8000);
         } else {
             indicator.innerHTML = '';
             indicator.style.display = 'none';
+            clearTimeout(typingReceiverTimeout);
         }
     });
 }
@@ -390,6 +404,7 @@ db.collection('messages')
 
         if (wasAtBottom) {
             messagesArea.scrollTop = messagesArea.scrollHeight;
+            document.getElementById('scrollBottomBtn').style.display = 'none';
         }
 
         // Mark received messages as read
@@ -568,7 +583,7 @@ function createMessageElement(id, msg) {
     `;
 
     // Add link preview if message contains a URL
-    if (msg.text && !isOwn) {
+    if (msg.text) {
         const url = extractUrl(msg.text);
         if (url) {
             const container = div.querySelector('.link-preview-container');
@@ -673,7 +688,8 @@ function sendMessage() {
         };
     }
 
-    db.collection('messages').add(msgData);
+    const savedText = input.value;
+    const savedReply = replyingTo ? { ...replyingTo } : null;
 
     input.value = '';
     cancelReply();
@@ -681,6 +697,19 @@ function sendMessage() {
     setTyping(false);
     toggleMicSend();
     autoResize(input);
+
+    db.collection('messages').add(msgData).catch(() => {
+        input.value = savedText;
+        if (savedReply) {
+            replyingTo = savedReply;
+            const preview = document.getElementById('replyPreview');
+            document.getElementById('replyName').textContent = savedReply.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
+            document.getElementById('replyText').textContent = savedReply.text || '';
+            preview.style.display = 'flex';
+        }
+        toggleMicSend();
+        showToast('Failed to send message');
+    });
 }
 
 // Textarea: Enter sends, Shift+Enter new line
@@ -719,6 +748,12 @@ document.getElementById('fileInput').addEventListener('change', function(e) {
 });
 
 function handleFile(file) {
+    const MAX_SIZE = 10 * 1024 * 1024;
+    if (file.size > MAX_SIZE) {
+        showToast('File too large (max 10MB)');
+        return;
+    }
+
     const progressEl = document.getElementById('uploadProgress');
     const progressFill = document.getElementById('progressFill');
     const progressText = document.getElementById('progressText');
@@ -1067,7 +1102,7 @@ function openEditModal(messageId, currentText) {
     modal.innerHTML = `
         <div class="edit-modal">
             <h3>Edit Message</h3>
-            <input type="text" id="editInput" autocomplete="off">
+            <textarea id="editInput" rows="3" autocomplete="off"></textarea>
             <div class="edit-modal-actions">
                 <button class="edit-cancel-btn" onclick="closeModal()">Cancel</button>
                 <button class="edit-save-btn" onclick="saveEdit()">Save</button>
@@ -1078,9 +1113,13 @@ function openEditModal(messageId, currentText) {
     document.body.appendChild(modal);
     const input = document.getElementById('editInput');
     input.value = currentText;
+    autoResize(input);
     input.focus();
     input.setSelectionRange(input.value.length, input.value.length);
-    input.addEventListener('keypress', (e) => { if (e.key === 'Enter') saveEdit(); });
+    input.addEventListener('input', function() { autoResize(this); });
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveEdit(); }
+    });
 }
 
 function closeModal() {
@@ -1172,8 +1211,20 @@ function showNotification(title, body) {
     }
 }
 
+// ===== SCROLL TO BOTTOM =====
+function scrollToBottom() {
+    const messagesArea = document.getElementById('messagesArea');
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+    document.getElementById('scrollBottomBtn').style.display = 'none';
+}
+
+document.getElementById('messagesArea').addEventListener('scroll', function() {
+    const btn = document.getElementById('scrollBottomBtn');
+    const atBottom = this.scrollHeight - this.scrollTop <= this.clientHeight + 100;
+    btn.style.display = atBottom ? 'none' : 'flex';
+});
+
 // ===== INIT =====
-initEmojiPicker();
 initTyping();
 watchTyping();
 requestNotificationPermission();
