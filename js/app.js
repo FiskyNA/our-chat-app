@@ -312,41 +312,66 @@ db.collection('messages')
         const wasAtBottom = messagesArea.scrollHeight - messagesArea.scrollTop <= messagesArea.clientHeight + 100;
 
         const currentIds = snapshot.docs.map(d => d.id);
+
+        // Remove deleted messages
+        lastRenderedIds.forEach(id => {
+            if (!currentIds.includes(id)) {
+                const el = document.getElementById('msg-' + id);
+                if (el) {
+                    const prev = el.previousElementSibling;
+                    el.remove();
+                    if (prev && prev.classList.contains('date-separator')) prev.remove();
+                }
+            }
+        });
+
+        // Update existing messages in place
+        snapshot.forEach(doc => {
+            const msg = doc.data();
+            const existing = document.getElementById('msg-' + doc.id);
+            if (existing) {
+                const updated = createMessageElement(doc.id, msg);
+                existing.replaceWith(updated);
+            }
+        });
+
+        // Add new messages
         const newIds = currentIds.filter(id => !lastRenderedIds.includes(id));
-        const removedIds = lastRenderedIds.filter(id => !currentIds.includes(id));
-        const contentChanged = newIds.length > 0 || removedIds.length > 0;
+        newIds.forEach(id => {
+            const doc = snapshot.docs.find(d => d.id === id);
+            if (!doc) return;
+            const msg = doc.data();
 
-        if (contentChanged) {
-            // Full re-render only when messages are added/removed
-            messagesArea.innerHTML = '';
-            lastRenderedIds = currentIds;
+            // Find insertion point
+            const idx = currentIds.indexOf(id);
+            let insertBefore = null;
+            for (let i = idx + 1; i < currentIds.length; i++) {
+                const next = document.getElementById('msg-' + currentIds[i]);
+                if (next) { insertBefore = next; break; }
+            }
 
+            // Date separator
             let prevMsg = null;
-            snapshot.forEach(doc => {
-                const msg = doc.data();
-
-                if (shouldShowDateSeparator(msg, prevMsg)) {
-                    const sep = document.createElement('div');
-                    sep.className = 'date-separator';
-                    sep.innerHTML = `<span>${getDateLabel(msg.timestamp)}</span>`;
-                    messagesArea.appendChild(sep);
+            if (idx > 0) {
+                const prevId = currentIds[idx - 1];
+                const prevEl = document.getElementById('msg-' + prevId);
+                if (prevEl) {
+                    const prevDoc = snapshot.docs.find(d => d.id === prevId);
+                    if (prevDoc) prevMsg = prevDoc.data();
                 }
+            }
+            if (shouldShowDateSeparator(msg, prevMsg)) {
+                const sep = document.createElement('div');
+                sep.className = 'date-separator';
+                sep.innerHTML = `<span>${getDateLabel(msg.timestamp)}</span>`;
+                messagesArea.insertBefore(sep, insertBefore);
+            }
 
-                const div = createMessageElement(doc.id, msg);
-                messagesArea.appendChild(div);
-                prevMsg = msg;
-            });
-        } else {
-            // Update existing messages in place (reactions, read status, etc.)
-            snapshot.forEach(doc => {
-                const msg = doc.data();
-                const existing = document.getElementById('msg-' + doc.id);
-                if (existing) {
-                    const updated = createMessageElement(doc.id, msg);
-                    existing.replaceWith(updated);
-                }
-            });
-        }
+            const div = createMessageElement(id, msg);
+            messagesArea.insertBefore(div, insertBefore);
+        });
+
+        lastRenderedIds = currentIds;
 
         if (wasAtBottom) {
             messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -517,7 +542,6 @@ function createMessageElement(id, msg) {
             ${msg.text ? `<div class="message-text" data-full="${escapeHtml(msg.text).replace(/"/g, '&quot;')}">${formatText(msg.text)}</div>` : ''}
         </div>
         <div class="link-preview-container"></div>
-        ${msg.text && msg.text.length > 150 ? '<button class="read-more-btn" onclick="toggleReadMore(this)">Read more...</button>' : ''}
         ${reactionsHtml}
         <div class="message-footer">
             <div class="message-meta">${msg.sender === 'hubby' ? 'Hubby' : 'Wifeyy'} · ${time}${readTick}${editedLabel}</div>
