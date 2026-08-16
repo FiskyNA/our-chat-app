@@ -23,6 +23,7 @@ let recordingSeconds = 0;
 let editingMessageId = null;
 let isRecording = false;
 let lastRenderedIds = [];
+let lastRenderedHashes = {};
 let selectedMessageId = null;
 let selectedMessageData = null;
 let replyingTo = null;
@@ -322,16 +323,25 @@ db.collection('messages')
                     el.remove();
                     if (prev && prev.classList.contains('date-separator')) prev.remove();
                 }
+                delete lastRenderedHashes[id];
             }
         });
 
-        // Update existing messages in place
+        // Update existing messages only if data changed
         snapshot.forEach(doc => {
             const msg = doc.data();
             const existing = document.getElementById('msg-' + doc.id);
             if (existing) {
-                const updated = createMessageElement(doc.id, msg);
-                existing.replaceWith(updated);
+                const hash = JSON.stringify({
+                    text: msg.text, reactions: msg.reactions, read: msg.read,
+                    deleted: msg.deleted, pinned: msg.pinned, edited: msg.edited,
+                    fileData: msg.fileData, type: msg.type
+                });
+                if (lastRenderedHashes[doc.id] !== hash) {
+                    const updated = createMessageElement(doc.id, msg);
+                    existing.replaceWith(updated);
+                    lastRenderedHashes[doc.id] = hash;
+                }
             }
         });
 
@@ -369,6 +379,11 @@ db.collection('messages')
 
             const div = createMessageElement(id, msg);
             messagesArea.insertBefore(div, insertBefore);
+            lastRenderedHashes[id] = JSON.stringify({
+                text: msg.text, reactions: msg.reactions, read: msg.read,
+                deleted: msg.deleted, pinned: msg.pinned, edited: msg.edited,
+                fileData: msg.fileData, type: msg.type
+            });
         });
 
         lastRenderedIds = currentIds;
