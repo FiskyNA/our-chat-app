@@ -989,18 +989,7 @@ document.addEventListener('click', () => {
     document.querySelectorAll('.msg-dropdown').forEach(d => d.style.display = 'none');
 });
 
-function toggleReadMore(btn) {
-    const msgEl = btn.closest('.message');
-    const textEl = msgEl ? msgEl.querySelector('.message-text') : null;
-    if (!textEl) return;
-    if (btn.textContent === 'Read more...') {
-        textEl.classList.add('expanded');
-        btn.textContent = 'Read less';
-    } else {
-        textEl.classList.remove('expanded');
-        btn.textContent = 'Read more...';
-    }
-}
+
 
 // ===== LINK PREVIEW =====
 function extractUrl(text) {

@@ -634,30 +634,7 @@ body.dark .date-separator span {
     font-size: 0.85em;
 }
 
-.message-text {
-    max-height: 4.5em;
-    overflow: hidden;
-    position: relative;
-}
 
-.message-text.expanded {
-    max-height: none;
-}
-
-.read-more-btn {
-    background: none;
-    border: none;
-    color: #027eb5;
-    font-size: 0.75rem;
-    cursor: pointer;
-    padding: 0;
-    margin-top: 0.2rem;
-    font-family: 'Inter', sans-serif;
-}
-
-.read-more-btn:active {
-    opacity: 0.6;
-}
 
 /* Reply in message - WhatsApp style */
 .msg-reply {
