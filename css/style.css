@@ -550,6 +550,26 @@ body.dark .date-separator span {
     color: #8696a0;
 }
 
+/* New Messages Divider */
+.new-messages-divider {
+    text-align: center;
+    padding: 0.5rem 0;
+}
+
+.new-messages-divider span {
+    background: #00a884;
+    padding: 0.3rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: #fff;
+    font-weight: 500;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+}
+
+body.dark .new-messages-divider span {
+    background: #005c4b;
+}
+
 /* Messages - WhatsApp Style */
 .message {
     max-width: 85%;

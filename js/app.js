@@ -24,6 +24,8 @@ let editingMessageId = null;
 let isRecording = false;
 let lastRenderedIds = [];
 let lastRenderedHashes = {};
+let firstLoad = true;
+let newMessagesDividerId = null;
 let selectedMessageId = null;
 let selectedMessageData = null;
 let replyingTo = null;
@@ -409,6 +411,12 @@ db.collection('messages')
 
         lastRenderedIds = currentIds;
 
+        // Insert "New Messages" divider on first load
+        if (firstLoad) {
+            firstLoad = false;
+            insertNewMessagesDivider(snapshot, messagesArea);
+        }
+
         if (wasAtBottom) {
             messagesArea.scrollTop = messagesArea.scrollHeight;
             document.getElementById('scrollBottomBtn').style.display = 'none';
@@ -438,6 +446,35 @@ function markMessagesAsRead(snapshot) {
             doc.ref.update({ read: true }).catch(() => {});
         }
     });
+}
+
+function insertNewMessagesDivider(snapshot, messagesArea) {
+    // Find the first unread message from the other user
+    let firstUnreadId = null;
+    snapshot.forEach(doc => {
+        const msg = doc.data();
+        if (!firstUnreadId && msg.sender === otherUser && !msg.read) {
+            firstUnreadId = doc.id;
+        }
+    });
+
+    if (!firstUnreadId) return;
+
+    const msgEl = document.getElementById('msg-' + firstUnreadId);
+    if (!msgEl) return;
+
+    const divider = document.createElement('div');
+    divider.className = 'new-messages-divider';
+    divider.id = 'newMsgDivider';
+    divider.innerHTML = '<span>New Messages</span>';
+    messagesArea.insertBefore(divider, msgEl);
+    newMessagesDividerId = firstUnreadId;
+}
+
+function removeNewMessagesDivider() {
+    const divider = document.getElementById('newMsgDivider');
+    if (divider) divider.remove();
+    newMessagesDividerId = null;
 }
 
 function createMessageElement(id, msg) {
@@ -701,6 +738,7 @@ function sendMessage() {
 
     input.value = '';
     cancelReply();
+    removeNewMessagesDivider();
     input.focus();
     setTyping(false);
     toggleMicSend();
@@ -1224,6 +1262,7 @@ function scrollToBottom() {
     const messagesArea = document.getElementById('messagesArea');
     messagesArea.scrollTop = messagesArea.scrollHeight;
     document.getElementById('scrollBottomBtn').style.display = 'none';
+    removeNewMessagesDivider();
 }
 
 document.getElementById('messagesArea').addEventListener('scroll', function() {
