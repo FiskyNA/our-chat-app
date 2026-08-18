@@ -262,6 +262,7 @@ function insertEmoji(emoji) {
 // ===== TYPING INDICATOR =====
 let typingRef = null;
 let typingReceiverTimeout = null;
+let otherTypingState = false;
 
 function initTyping() {
     typingRef = db.collection('presence').doc(currentUser);
@@ -278,20 +279,25 @@ function watchTyping() {
     db.collection('presence').doc(otherUser).onSnapshot(doc => {
         const data = doc.data();
         const indicator = document.getElementById('typingIndicator');
+        const isTyping = data && data.typing;
 
-        if (data && data.typing) {
+        if (isTyping && !otherTypingState) {
+            otherTypingState = true;
             indicator.innerHTML = `<div class="typing-dots"><span></span><span></span><span></span></div><span>${otherName} is typing</span>`;
             indicator.style.display = 'flex';
+        } else if (!isTyping && otherTypingState) {
+            otherTypingState = false;
+            indicator.innerHTML = '';
+            indicator.style.display = 'none';
+        }
 
-            clearTimeout(typingReceiverTimeout);
+        clearTimeout(typingReceiverTimeout);
+        if (isTyping) {
             typingReceiverTimeout = setTimeout(() => {
+                otherTypingState = false;
                 indicator.innerHTML = '';
                 indicator.style.display = 'none';
             }, 8000);
-        } else {
-            indicator.innerHTML = '';
-            indicator.style.display = 'none';
-            clearTimeout(typingReceiverTimeout);
         }
     });
 }
