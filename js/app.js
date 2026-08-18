@@ -30,6 +30,8 @@ let selectedMessageId = null;
 let selectedMessageData = null;
 let replyingTo = null;
 let typingTimeout = null;
+const linkPreviewCache = new Map();
+let reactionCloseHandler = null;
 
 if (!currentUser) {
     window.location.href = 'index.html';
@@ -255,11 +257,6 @@ function insertEmoji(emoji) {
     input.value += emoji;
     input.focus();
 }
-
-// ===== TYPING INDICATOR =====
-
-
-
 
 // ===== TYPING INDICATOR =====
 let typingRef = null;
@@ -588,7 +585,7 @@ function createMessageElement(id, msg) {
         const msgTime = msg.timestamp.toDate().getTime();
         const fiveMinAgo = Date.now() - 5 * 60 * 1000;
         if (msgTime > fiveMinAgo) {
-            menuItems += `<button class="dropdown-item" onclick="event.stopPropagation(); openEditModal('${id}', '${escapeHtml(msg.text).replace(/'/g, "\\'")}')">✏️ Edit</button>`;
+            menuItems += `<button class="dropdown-item" data-edit-text="${escapeHtml(msg.text).replace(/"/g, '&quot;')}" onclick="event.stopPropagation(); openEditModal('${id}', this.dataset.editText)">✏️ Edit</button>`;
         }
     }
     if (isOwn) {
@@ -614,7 +611,7 @@ function createMessageElement(id, msg) {
         ${replyHtml}
         <div class="message-row">
             ${mediaHtml}
-            ${msg.text ? `<div class="message-text" data-full="${escapeHtml(msg.text).replace(/"/g, '&quot;')}">${formatText(msg.text)}</div>` : ''}
+            ${msg.text ? `<div class="message-text" data-raw-text="${escapeHtml(msg.text).replace(/"/g, '&quot;')}">${formatText(msg.text)}</div>` : ''}
         </div>
         <div class="link-preview-container"></div>
         ${reactionsHtml}
@@ -714,7 +711,7 @@ function toggleReaction(messageId, emoji) {
 function sendMessage() {
     const input = document.getElementById('messageInput');
     const text = input.value.trim();
-    if (!text && !replyingTo) return;
+    if (!text) return;
 
     const msgData = {
         sender: currentUser,
@@ -892,6 +889,7 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
         cancelReply();
     }).catch(err => {
         progressEl.style.display = 'none';
+        cancelReply();
         if (err.message.includes('maximum size')) alert('File is too large. Try a smaller file.');
         else alert('Failed to send: ' + err.message);
     });
@@ -999,11 +997,14 @@ function openLightbox(url) {
 }
 
 // ===== TOAST =====
+let toastTimeout = null;
+
 function showToast(text) {
     const toast = document.getElementById('toast');
+    clearTimeout(toastTimeout);
     toast.textContent = text;
     toast.style.display = 'block';
-    setTimeout(() => toast.style.display = 'none', 1500);
+    toastTimeout = setTimeout(() => toast.style.display = 'none', 1500);
 }
 
 // ===== QUICK ACTIONS (Button-based) =====
@@ -1035,6 +1036,10 @@ function quickReply(id) {
 }
 
 function quickReact(id) {
+    if (reactionCloseHandler) {
+        document.removeEventListener('click', reactionCloseHandler);
+        reactionCloseHandler = null;
+    }
     selectedMessageId = id;
     const picker = document.getElementById('reactionPicker');
     const grid = document.getElementById('reactEmojiGrid');
@@ -1052,8 +1057,10 @@ function quickReact(id) {
         if (!picker.contains(e.target) && !e.target.closest('.msg-react-btn')) {
             closeReactionPicker();
             document.removeEventListener('click', closeHandler);
+            reactionCloseHandler = null;
         }
     };
+    reactionCloseHandler = closeHandler;
     setTimeout(() => document.addEventListener('click', closeHandler), 100);
 }
 
@@ -1097,13 +1104,19 @@ function extractUrl(text) {
 function createLinkPreview(url) {
     const wrapper = document.createElement('div');
     wrapper.className = 'link-preview';
+
+    if (linkPreviewCache.has(url)) {
+        wrapper.innerHTML = linkPreviewCache.get(url);
+        return wrapper;
+    }
+
     wrapper.innerHTML = `<div class="link-preview-loading">Loading preview...</div>`;
 
     fetch(`https://api.linkpreview.net/?q=${encodeURIComponent(url)}`)
         .then(res => res.json())
         .then(data => {
             if (data.error) throw new Error();
-            wrapper.innerHTML = `
+            const html = `
                 <a href="${escapeHtml(url)}" target="_blank" class="link-preview-card">
                     ${data.image ? `<img src="${escapeHtml(data.image)}" class="link-preview-img" onerror="this.style.display='none'">` : ''}
                     <div class="link-preview-info">
@@ -1113,9 +1126,11 @@ function createLinkPreview(url) {
                     </div>
                 </a>
             `;
+            linkPreviewCache.set(url, html);
+            wrapper.innerHTML = html;
         })
         .catch(() => {
-            wrapper.innerHTML = `
+            const html = `
                 <a href="${escapeHtml(url)}" target="_blank" class="link-preview-card link-preview-fallback">
                     <div class="link-preview-info">
                         <div class="link-preview-site">${escapeHtml(new URL(url).hostname)}</div>
@@ -1123,6 +1138,8 @@ function createLinkPreview(url) {
                     </div>
                 </a>
             `;
+            linkPreviewCache.set(url, html);
+            wrapper.innerHTML = html;
         });
 
     return wrapper;
@@ -1303,17 +1320,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (!textEl) return;
                     if (!query) {
                         msg.style.display = '';
-                        textEl.innerHTML = formatText(textEl.dataset.original || textEl.textContent);
+                        textEl.innerHTML = formatText(textEl.dataset.rawText || textEl.textContent);
                         return;
                     }
-                    if (!textEl.dataset.original) {
-                        textEl.dataset.original = textEl.textContent;
+                    if (!textEl.dataset.rawText) {
+                        textEl.dataset.rawText = textEl.textContent;
                     }
-                    const text = textEl.dataset.original.toLowerCase();
+                    const text = textEl.dataset.rawText.toLowerCase();
                     if (text.includes(query)) {
                         msg.style.display = '';
                         const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-                        textEl.innerHTML = formatText(textEl.dataset.original).replace(regex, '<mark>$1</mark>');
+                        textEl.innerHTML = formatText(textEl.dataset.rawText).replace(regex, '<mark>$1</mark>');
                     } else {
                         msg.style.display = 'none';
                     }
@@ -1328,8 +1345,8 @@ function clearSearch() {
     messages.forEach(msg => {
         msg.style.display = '';
         const textEl = msg.querySelector('.message-text');
-        if (textEl && textEl.dataset.original) {
-            textEl.innerHTML = formatText(textEl.dataset.original);
+        if (textEl && textEl.dataset.rawText) {
+            textEl.innerHTML = formatText(textEl.dataset.rawText);
         }
     });
 }

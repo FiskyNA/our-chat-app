@@ -409,7 +409,7 @@ body.dark .typing-indicator-bottom {
 /* Scroll to Bottom Button */
 .scroll-bottom-btn {
     position: absolute;
-    bottom: 140px;
+    bottom: 70px;
     right: 16px;
     width: 40px;
     height: 40px;
