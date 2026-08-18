@@ -396,7 +396,8 @@ db.collection('messages')
             lastRenderedHashes[id] = JSON.stringify({
                 text: msg.text, reactions: msg.reactions, read: msg.read,
                 deleted: msg.deleted, pinned: msg.pinned, edited: msg.edited,
-                fileData: msg.fileData, type: msg.type
+                fileData: msg.fileData, type: msg.type,
+                timestamp: msg.timestamp?.toMillis?.() || null
             });
         });
 
@@ -424,12 +425,13 @@ db.collection('messages')
     });
 
 function markMessagesAsRead(snapshot) {
-    if (!snapshot || snapshot.docs.length === 0) return;
-    const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-    const lastMsg = lastDoc.data();
-    if (lastMsg.sender === otherUser && !lastMsg.read) {
-        lastDoc.ref.update({ read: true }).catch(() => {});
-    }
+    if (!snapshot) return;
+    snapshot.forEach(doc => {
+        const msg = doc.data();
+        if (msg.sender === otherUser && !msg.read) {
+            doc.ref.update({ read: true }).catch(() => {});
+        }
+    });
 }
 
 function createMessageElement(id, msg) {
@@ -440,7 +442,7 @@ function createMessageElement(id, msg) {
 
     const time = msg.timestamp
         ? new Date(msg.timestamp.toDate()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        : '';
+        : new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     // Swipe right to reply
     let startX = 0;
