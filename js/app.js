@@ -313,6 +313,21 @@ function updateLastSeen() {
     }
 }
 
+function updateLastMessageTime() {
+    if (typingRef) {
+        typingRef.set({ lastMessageTime: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    }
+}
+
+function getSneakyTimestamp(data) {
+    const hour = new Date().getHours();
+    const isSneakyHours = hour >= 22 || hour < 4;
+    if (isSneakyHours && data.lastMessageTime) {
+        return data.lastMessageTime;
+    }
+    return data.lastSeen;
+}
+
 setInterval(updateLastSeen, 30000);
 document.addEventListener('visibilitychange', () => {
     if (!document.hidden) updateLastSeen();
@@ -351,13 +366,17 @@ function updateHeaderStatus(data) {
     const statusEl = document.getElementById('headerStatus');
     if (!statusEl) return;
 
-    if (data && data.typing) {
+    const hour = new Date().getHours();
+    const isSneakyHours = hour >= 22 || hour < 4;
+
+    if (data && data.typing && !isSneakyHours) {
         statusEl.textContent = 'online';
         return;
     }
 
-    if (data && data.lastSeen) {
-        statusEl.textContent = formatLastSeen(data.lastSeen);
+    const displayTimestamp = getSneakyTimestamp(data);
+    if (displayTimestamp) {
+        statusEl.textContent = formatLastSeen(displayTimestamp);
     }
 }
 
@@ -801,7 +820,9 @@ function sendMessage() {
     toggleMicSend();
     autoResize(input);
 
-    db.collection('messages').add(msgData).catch(() => {
+    db.collection('messages').add(msgData).then(() => {
+        updateLastMessageTime();
+    }).catch(() => {
         input.value = savedText;
         if (savedReply) {
             replyingTo = savedReply;
@@ -947,6 +968,7 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
     db.collection('messages').add(msgData).then(() => {
         progressEl.style.display = 'none';
         cancelReply();
+        updateLastMessageTime();
     }).catch(err => {
         progressEl.style.display = 'none';
         cancelReply();
