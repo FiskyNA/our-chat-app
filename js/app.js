@@ -507,23 +507,17 @@ db.collection('messages')
         // Mark received messages as read
         markMessagesAsRead(snapshot);
 
-        // Show notification for new messages from other user (hubby only)
-        if (currentUser === 'hubby' && newIds.length > 0 && snapshot.docs.length > 0) {
-            let notifTexts = [];
+        // Show notification for every new message from other user (hubby only)
+        if (currentUser === 'hubby' && newIds.length > 0) {
             newIds.forEach(id => {
                 const doc = snapshot.docs.find(d => d.id === id);
                 if (doc) {
                     const msg = doc.data();
                     if (msg.sender === otherUser) {
-                        notifTexts.push(msg.text || '📎 Attachment');
+                        showNotification(otherName, msg.text || '📎 Attachment');
                     }
                 }
             });
-            if (notifTexts.length > 0 && (document.hidden || !wasAtBottom)) {
-                const lastText = notifTexts[notifTexts.length - 1];
-                const preview = notifTexts.length > 1 ? `(${notifTexts.length} messages) ` : '';
-                showNotification(otherName, preview + lastText);
-            }
         }
 
         // Update favicon badge with unread count
@@ -1557,25 +1551,6 @@ document.getElementById('messagesArea').addEventListener('scroll', function() {
 // ===== INIT =====
 initTyping();
 watchTyping();
-
-// TEST NOTIFICATION - open console to see debug logs
-if (currentUser === 'hubby') {
-    const perm = Notification.permission;
-    console.log('[Notif] Permission:', perm);
-    if (perm === 'denied') {
-        console.log('[Notif] BLOCKED! Go to site settings > Notifications > reset to Allow');
-    }
-    if (perm !== 'granted') {
-        Notification.requestPermission().then(p => {
-            console.log('[Notif] Permission after request:', p);
-            if (p === 'granted') {
-                setTimeout(() => showNotification('Wifeyy', 'Test notification works! 🎉'), 500);
-            }
-        });
-    } else {
-        setTimeout(() => showNotification('Wifeyy', 'Test notification works! 🎉'), 500);
-    }
-}
 
 // ===== SEARCH =====
 function toggleSearch() {
