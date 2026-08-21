@@ -1558,10 +1558,23 @@ document.getElementById('messagesArea').addEventListener('scroll', function() {
 initTyping();
 watchTyping();
 
-// TEST: Force a notification on load so you can see how it looks
+// TEST NOTIFICATION - open console to see debug logs
 if (currentUser === 'hubby') {
-    requestNotificationPermission();
-    setTimeout(() => showNotification('Wifeyy', 'This is a test notification! 🎉'), 2000);
+    const perm = Notification.permission;
+    console.log('[Notif] Permission:', perm);
+    if (perm === 'denied') {
+        console.log('[Notif] BLOCKED! Go to site settings > Notifications > reset to Allow');
+    }
+    if (perm !== 'granted') {
+        Notification.requestPermission().then(p => {
+            console.log('[Notif] Permission after request:', p);
+            if (p === 'granted') {
+                setTimeout(() => showNotification('Wifeyy', 'Test notification works! 🎉'), 500);
+            }
+        });
+    } else {
+        setTimeout(() => showNotification('Wifeyy', 'Test notification works! 🎉'), 500);
+    }
 }
 
 // ===== SEARCH =====
