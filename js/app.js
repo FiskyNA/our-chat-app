@@ -372,7 +372,6 @@ function formatLastSeen(timestamp) {
 }
 
 function updateHeaderStatus(data) {
-    if (currentUser !== 'hubby') return;
     const statusEl = document.getElementById('headerStatus');
     if (!statusEl) return;
 
