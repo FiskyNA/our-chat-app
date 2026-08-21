@@ -309,20 +309,25 @@ let otherPresenceData = null;
 
 function updateLastSeen() {
     if (typingRef) {
-        typingRef.set({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+        typingRef.set({
+            lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+            frozen: false
+        }, { merge: true });
     }
 }
 
 function updateLastMessageTime() {
-    if (typingRef) {
-        typingRef.set({ lastMessageTime: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
-    }
+    if (!typingRef) return;
+    const hour = new Date().getHours();
+    const isSneakyHours = hour >= 22 || hour < 4;
+    typingRef.set({
+        lastMessageTime: firebase.firestore.FieldValue.serverTimestamp(),
+        ...(isSneakyHours && { frozen: true })
+    }, { merge: true });
 }
 
 function getSneakyTimestamp(data) {
-    const hour = new Date().getHours();
-    const isSneakyHours = hour >= 22 || hour < 4;
-    if (isSneakyHours && data.lastMessageTime) {
+    if (data.frozen && data.lastMessageTime) {
         return data.lastMessageTime;
     }
     return data.lastSeen;
@@ -366,10 +371,7 @@ function updateHeaderStatus(data) {
     const statusEl = document.getElementById('headerStatus');
     if (!statusEl) return;
 
-    const hour = new Date().getHours();
-    const isSneakyHours = hour >= 22 || hour < 4;
-
-    if (data && data.typing && !isSneakyHours) {
+    if (data && data.typing && !data.frozen) {
         statusEl.textContent = 'online';
         return;
     }
