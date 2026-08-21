@@ -378,8 +378,8 @@ function updateHeaderStatus(data) {
     const hour = new Date().getHours();
     const isSneakyHours = hour >= 22 || hour < 4;
 
-    // After 10PM: if last message was >1 min ago, hide online and show last seen
-    if (isSneakyHours && data && data.lastMessageTime) {
+    // After 10PM: only when wifey views hubby — hide online if last message >1 min ago
+    if (isSneakyHours && currentUser === 'wifeyy' && data && data.lastMessageTime) {
         const msgTime = data.lastMessageTime.toDate ? data.lastMessageTime.toDate() : new Date(data.lastMessageTime);
         const minsSinceMsg = (Date.now() - msgTime.getTime()) / 60000;
         if (minsSinceMsg > 1) {
@@ -388,7 +388,7 @@ function updateHeaderStatus(data) {
         }
     }
 
-    // Show "online" if typing OR if lastSeen is less than 60 seconds ago
+    // Show "online" if lastSeen is less than 60 seconds ago
     const lastSeenTime = data && data.lastSeen;
     if (lastSeenTime) {
         const ts = lastSeenTime.toDate ? lastSeenTime.toDate() : new Date(lastSeenTime);
