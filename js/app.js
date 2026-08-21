@@ -375,6 +375,19 @@ function updateHeaderStatus(data) {
     const statusEl = document.getElementById('headerStatus');
     if (!statusEl) return;
 
+    const hour = new Date().getHours();
+    const isSneakyHours = hour >= 22 || hour < 4;
+
+    // After 10PM: if last message was >1 min ago, hide online and show last seen
+    if (isSneakyHours && data && data.lastMessageTime) {
+        const msgTime = data.lastMessageTime.toDate ? data.lastMessageTime.toDate() : new Date(data.lastMessageTime);
+        const minsSinceMsg = (Date.now() - msgTime.getTime()) / 60000;
+        if (minsSinceMsg > 1) {
+            statusEl.textContent = formatLastSeen(msgTime);
+            return;
+        }
+    }
+
     if (data && data.typing && !data.frozen) {
         statusEl.textContent = 'online';
         return;
