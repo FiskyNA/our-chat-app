@@ -518,6 +518,7 @@ db.collection('messages')
         lastRenderedIds = currentIds;
 
         // Insert "New Messages" divider on first load
+        const isFirstLoad = firstLoad;
         if (firstLoad) {
             firstLoad = false;
             insertNewMessagesDivider(snapshot, messagesArea);
@@ -531,8 +532,8 @@ db.collection('messages')
         // Mark received messages as read
         markMessagesAsRead(snapshot);
 
-        // Show notification for new messages from other user (hubby only)
-        if (currentUser === 'hubby' && newIds.length > 0 && !firstLoad) {
+        // Show notification for new messages from other user (hubby only) — skip first load
+        if (currentUser === 'hubby' && newIds.length > 0 && !isFirstLoad) {
             newIds.forEach(id => {
                 const doc = snapshot.docs.find(d => d.id === id);
                 if (doc) {
