@@ -508,12 +508,12 @@ db.collection('messages')
         // Mark received messages as read
         markMessagesAsRead(snapshot);
 
-        // Show notification for new messages from other user
-        if (newIds.length > 0 && snapshot.docs.length > 0) {
+        // Show notification for new messages from other user (hubby only)
+        if (currentUser === 'hubby' && newIds.length > 0 && snapshot.docs.length > 0) {
             const lastDoc = snapshot.docs[snapshot.docs.length - 1];
             const lastMsg = lastDoc.data();
-            if (lastMsg.sender === otherUser && !document.hidden) {
-                if (!wasAtBottom) {
+            if (lastMsg.sender === otherUser) {
+                if (document.hidden || !wasAtBottom) {
                     const senderName = lastMsg.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
                     showNotification(senderName, lastMsg.text || '📎 Attachment');
                 }
@@ -1390,6 +1390,7 @@ function formatText(text) {
 
 // ===== NOTIFICATIONS =====
 function requestNotificationPermission() {
+    if (currentUser !== 'hubby') return;
     if ('Notification' in window && Notification.permission === 'default') {
         Notification.requestPermission();
     }
