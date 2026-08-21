@@ -327,6 +327,10 @@ function updateLastMessageTime() {
 }
 
 function getSneakyTimestamp(data) {
+    // When wifey views hubby: always show last message time as "last seen"
+    if (currentUser === 'wifeyy' && data.lastMessageTime) {
+        return data.lastMessageTime;
+    }
     if (data.frozen && data.lastMessageTime) {
         return data.lastMessageTime;
     }
