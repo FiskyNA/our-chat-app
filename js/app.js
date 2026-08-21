@@ -338,7 +338,10 @@ setInterval(() => {
     if (!document.hidden) updateLastSeen();
 }, 30000);
 
-document.addEventListener('visibilitychange', () => updateLastSeen());
+document.addEventListener('visibilitychange', () => {
+    updateLastSeen();
+    if (!document.hidden) setFaviconBadge(0);
+});
 window.addEventListener('beforeunload', updateLastSeen);
 
 // Refresh header status every 60s so "online" transitions to "last seen"
@@ -515,6 +518,18 @@ db.collection('messages')
                     showNotification(senderName, lastMsg.text || '📎 Attachment');
                 }
             }
+        }
+
+        // Update favicon badge with unread count
+        let unread = 0;
+        snapshot.forEach(doc => {
+            const msg = doc.data();
+            if (msg.sender === otherUser && !msg.read) unread++;
+        });
+        if (document.hidden && unread > 0) {
+            setFaviconBadge(unread);
+        } else if (!document.hidden) {
+            setFaviconBadge(0);
         }
     });
 
@@ -1389,6 +1404,45 @@ function showNotification(title, body) {
             });
         } catch (e) {}
     }
+}
+
+// ===== FAVICON BADGE =====
+let unreadCount = 0;
+const baseFavicon = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>';
+
+function setFaviconBadge(count) {
+    unreadCount = count;
+    document.title = count > 0 ? `(${count}) Our Chat` : 'Our Chat';
+
+    if (count === 0) {
+        document.querySelector('link[rel="icon"]').href = baseFavicon;
+        return;
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d');
+
+    const img = new Image();
+    img.onload = () => {
+        ctx.drawImage(img, 0, 0, 64, 64);
+
+        const badge = count > 99 ? '99+' : String(count);
+        ctx.fillStyle = '#ff3b30';
+        ctx.beginPath();
+        ctx.arc(48, 16, 14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 18px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(badge, 48, 17);
+
+        document.querySelector('link[rel="icon"]').href = canvas.toDataURL();
+    };
+    img.src = baseFavicon;
 }
 
 // ===== SCROLL TO BOTTOM =====
