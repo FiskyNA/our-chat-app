@@ -344,10 +344,10 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('beforeunload', updateLastSeen);
 
-// Refresh header status every 60s so "online" transitions to "last seen"
+// Refresh header status every 30s so "online" transitions to "last seen"
 setInterval(() => {
     if (otherPresenceData) updateHeaderStatus(otherPresenceData);
-}, 60000);
+}, 30000);
 
 function formatLastSeen(timestamp) {
     if (!timestamp) return '';
@@ -388,11 +388,18 @@ function updateHeaderStatus(data) {
         }
     }
 
-    if (data && data.typing && !data.frozen) {
-        statusEl.textContent = 'online';
-        return;
+    // Show "online" if typing OR if lastSeen is less than 60 seconds ago
+    const lastSeenTime = data && data.lastSeen;
+    if (lastSeenTime) {
+        const ts = lastSeenTime.toDate ? lastSeenTime.toDate() : new Date(lastSeenTime);
+        const secsSince = (Date.now() - ts.getTime()) / 1000;
+        if (secsSince < 60) {
+            statusEl.textContent = 'online';
+            return;
+        }
     }
 
+    // Otherwise show last seen
     const displayTimestamp = getSneakyTimestamp(data);
     if (displayTimestamp) {
         statusEl.textContent = formatLastSeen(displayTimestamp);
