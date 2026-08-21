@@ -510,13 +510,20 @@ db.collection('messages')
 
         // Show notification for new messages from other user (hubby only)
         if (currentUser === 'hubby' && newIds.length > 0 && snapshot.docs.length > 0) {
-            const lastDoc = snapshot.docs[snapshot.docs.length - 1];
-            const lastMsg = lastDoc.data();
-            if (lastMsg.sender === otherUser) {
-                if (document.hidden || !wasAtBottom) {
-                    const senderName = lastMsg.sender === 'hubby' ? 'Hubby' : 'Wifeyy';
-                    showNotification(senderName, lastMsg.text || '📎 Attachment');
+            let notifTexts = [];
+            newIds.forEach(id => {
+                const doc = snapshot.docs.find(d => d.id === id);
+                if (doc) {
+                    const msg = doc.data();
+                    if (msg.sender === otherUser) {
+                        notifTexts.push(msg.text || '📎 Attachment');
+                    }
                 }
+            });
+            if (notifTexts.length > 0 && document.hidden) {
+                const lastText = notifTexts[notifTexts.length - 1];
+                const preview = notifTexts.length > 1 ? `(${notifTexts.length} messages) ` : '';
+                showNotification(otherName, preview + lastText);
             }
         }
 
@@ -1467,12 +1474,22 @@ function formatText(text) {
 }
 
 // ===== NOTIFICATIONS =====
+let notifPermissionRequested = false;
+
 function requestNotificationPermission() {
     if (currentUser !== 'hubby') return;
+    if (notifPermissionRequested) return;
     if ('Notification' in window && Notification.permission === 'default') {
+        notifPermissionRequested = true;
         Notification.requestPermission();
     }
 }
+
+// Request notification permission on first user interaction
+document.addEventListener('click', function requestNotifOnce() {
+    requestNotificationPermission();
+    document.removeEventListener('click', requestNotifOnce);
+});
 
 function showNotification(title, body) {
     if ('Notification' in window && Notification.permission === 'granted') {
@@ -1541,7 +1558,6 @@ document.getElementById('messagesArea').addEventListener('scroll', function() {
 // ===== INIT =====
 initTyping();
 watchTyping();
-requestNotificationPermission();
 
 // ===== SEARCH =====
 function toggleSearch() {
