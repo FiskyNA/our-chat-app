@@ -185,6 +185,9 @@ html, body {
 .header-status {
     font-size: 0.75rem;
     opacity: 0.8;
+    color: rgba(255,255,255,0.75);
+    display: block;
+    margin-top: 1px;
 }
 
 .header-center {
@@ -1400,6 +1403,7 @@ body.dark .header-back { color: #e9edef; }
 body.dark .header-back:active { background: rgba(255,255,255,0.05); }
 body.dark .header-avatar { background: #2a3942; }
 body.dark .header-user { color: #e9edef; }
+body.dark .header-status { color: rgba(233,237,239,0.6); }
 body.dark .header-title { color: #e9edef; }
 body.dark .search-btn, body.dark .theme-btn, body.dark .switch-btn { color: #aebac1; }
 body.dark .search-btn:active, body.dark .theme-btn:active, body.dark .switch-btn:active { background: rgba(255,255,255,0.05); }

@@ -277,8 +277,11 @@ function setTyping(isTyping) {
 function watchTyping() {
     db.collection('presence').doc(otherUser).onSnapshot(doc => {
         const data = doc.data();
+        otherPresenceData = data;
         const indicator = document.getElementById('typingIndicator');
         const isTyping = data && data.typing;
+
+        updateHeaderStatus(data);
 
         if (isTyping && !otherTypingState) {
             otherTypingState = true;
@@ -299,6 +302,63 @@ function watchTyping() {
             }, 8000);
         }
     });
+}
+
+// ===== LAST SEEN =====
+let otherPresenceData = null;
+
+function updateLastSeen() {
+    if (typingRef) {
+        typingRef.set({ lastSeen: firebase.firestore.FieldValue.serverTimestamp() }, { merge: true });
+    }
+}
+
+setInterval(updateLastSeen, 30000);
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) updateLastSeen();
+});
+window.addEventListener('beforeunload', updateLastSeen);
+
+// Refresh header status every 60s so "online" transitions to "last seen"
+setInterval(() => {
+    if (otherPresenceData) updateHeaderStatus(otherPresenceData);
+}, 60000);
+
+function formatLastSeen(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate();
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+
+    if (diffSec < 60) return 'online';
+
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+
+    if (isToday) return 'last seen today at ' + timeStr;
+    if (isYesterday) return 'last seen yesterday at ' + timeStr;
+    const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    return 'last seen ' + dateStr + ' at ' + timeStr;
+}
+
+function updateHeaderStatus(data) {
+    if (currentUser !== 'hubby') return;
+    const statusEl = document.getElementById('headerStatus');
+    if (!statusEl) return;
+
+    if (data && data.typing) {
+        statusEl.textContent = 'online';
+        return;
+    }
+
+    if (data && data.lastSeen) {
+        statusEl.textContent = formatLastSeen(data.lastSeen);
+    }
 }
 
 // ===== DATE SEPARATORS =====
