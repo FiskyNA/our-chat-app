@@ -1041,7 +1041,6 @@ function startRecording() {
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         isRecording = true;
         audioChunks = [];
-        mediaRecorder.stream = stream;
 
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
             ? 'audio/webm;codecs=opus'
@@ -1106,9 +1105,10 @@ function stopRecordingAndSend() {
 
 function cancelRecording() {
     if (mediaRecorder && mediaRecorder.state === 'recording') {
+        const stream = mediaRecorder.stream;
         mediaRecorder.ondataavailable = null;
         mediaRecorder.onstop = () => {
-            mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            stream.getTracks().forEach(t => t.stop());
             cleanupRecordingUI();
         };
         mediaRecorder.stop();
