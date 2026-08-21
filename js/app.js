@@ -333,10 +333,12 @@ function getSneakyTimestamp(data) {
     return data.lastSeen;
 }
 
-setInterval(updateLastSeen, 30000);
-document.addEventListener('visibilitychange', () => {
+// Only update lastSeen when tab is visible — so "online" is accurate
+setInterval(() => {
     if (!document.hidden) updateLastSeen();
-});
+}, 30000);
+
+document.addEventListener('visibilitychange', () => updateLastSeen());
 window.addEventListener('beforeunload', updateLastSeen);
 
 // Refresh header status every 60s so "online" transitions to "last seen"
@@ -1073,10 +1075,41 @@ document.getElementById('micBtn').addEventListener('contextmenu', e => e.prevent
 function openLightbox(url) {
     const lb = document.createElement('div');
     lb.className = 'lightbox';
-    lb.onclick = () => lb.remove();
-    const img = document.createElement('img');
-    img.src = url;
-    lb.appendChild(img);
+    lb.innerHTML = `
+        <button class="lightbox-close" onclick="this.parentElement.remove()">&#10005;</button>
+        <img src="${url}" onclick="event.stopPropagation()">
+    `;
+    lb.onclick = (e) => { if (e.target === lb) lb.remove(); };
+
+    let startY = 0;
+    let currentY = 0;
+    const img = lb.querySelector('img');
+
+    img.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+    });
+    img.addEventListener('touchmove', (e) => {
+        currentY = e.touches[0].clientY;
+        const diff = currentY - startY;
+        if (diff > 0) {
+            img.style.transform = `translateY(${diff}px)`;
+            img.style.opacity = 1 - (diff / 400);
+            lb.style.background = `rgba(0,0,0,${0.92 - (diff / 800)})`;
+        }
+    });
+    img.addEventListener('touchend', () => {
+        const diff = currentY - startY;
+        if (diff > 100) {
+            lb.remove();
+        } else {
+            img.style.transform = '';
+            img.style.opacity = '';
+            lb.style.background = '';
+        }
+        startY = 0;
+        currentY = 0;
+    });
+
     document.body.appendChild(lb);
 }
 
