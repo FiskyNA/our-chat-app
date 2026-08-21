@@ -67,7 +67,7 @@
             <button class="emoji-btn" id="emojiBtn" onclick="toggleEmojiPicker()" title="Emoji">&#128522;</button>
             <button class="attach-btn" onclick="document.getElementById('fileInput').click()" title="Attach file">&#128206;</button>
             <textarea id="messageInput" placeholder="Type a message" rows="1" autocomplete="off"></textarea>
-            <button class="mic-btn" id="micBtn" onmousedown="startRecording()" onmouseup="stopRecording()" ontouchstart="startRecording()" ontouchend="stopRecording()" title="Hold to record voice">&#127908;</button>
+            <button class="mic-btn" id="micBtn" onclick="toggleRecording()" title="Record voice">&#127908;</button>
             <button class="send-btn" id="sendBtn" onclick="sendMessage()">&#10148;</button>
         </div>
 
@@ -93,7 +93,9 @@
 
         <!-- Recording Indicator -->
         <div class="recording-indicator" id="recordingIndicator" style="display:none;">
-            <span class="rec-dot"></span> Recording... <span id="recTimer">0:00</span> &#8212; Release to send
+            <span class="rec-dot"></span>
+            <span class="rec-timer" id="recTimer">0:00</span>
+            <span class="rec-hint">← slide to cancel</span>
         </div>
 
         <!-- Toast -->

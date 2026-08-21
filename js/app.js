@@ -1016,16 +1016,25 @@ function getFileIcon(fileName) {
 }
 
 // ===== VOICE RECORDING =====
+function toggleRecording() {
+    if (isRecording) {
+        stopRecordingAndSend();
+    } else {
+        startRecording();
+    }
+}
+
 function startRecording() {
     if (isRecording) return;
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Voice recording not supported.');
+        showToast('Voice recording not supported');
         return;
     }
 
     navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
         isRecording = true;
         audioChunks = [];
+        mediaRecorder.stream = stream;
 
         const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
             ? 'audio/webm;codecs=opus'
@@ -1035,11 +1044,8 @@ function startRecording() {
         mediaRecorder.ondataavailable = (e) => { if (e.data && e.data.size > 0) audioChunks.push(e.data); };
 
         mediaRecorder.onstop = () => {
-            isRecording = false;
             stream.getTracks().forEach(t => t.stop());
-            document.getElementById('micBtn').classList.remove('recording');
-            document.getElementById('recordingIndicator').style.display = 'none';
-            if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+            cleanupRecordingUI();
             if (audioChunks.length === 0) return;
 
             const audioBlob = new Blob(audioChunks, { type: mimeType });
@@ -1057,17 +1063,20 @@ function startRecording() {
         };
 
         mediaRecorder.onerror = () => {
-            isRecording = false;
             stream.getTracks().forEach(t => t.stop());
-            document.getElementById('micBtn').classList.remove('recording');
-            document.getElementById('recordingIndicator').style.display = 'none';
-            if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
-            alert('Recording failed.');
+            cleanupRecordingUI();
+            showToast('Recording failed');
         };
 
         mediaRecorder.start(100);
-        document.getElementById('micBtn').classList.add('recording');
-        document.getElementById('recordingIndicator').style.display = 'flex';
+
+        // UI: show recording state
+        const micBtn = document.getElementById('micBtn');
+        micBtn.innerHTML = '&#9632;';
+        micBtn.classList.add('recording');
+
+        const indicator = document.getElementById('recordingIndicator');
+        indicator.style.display = 'flex';
         recordingSeconds = 0;
         document.getElementById('recTimer').textContent = '0:00';
         recordingTimer = setInterval(() => {
@@ -1076,12 +1085,81 @@ function startRecording() {
             const sec = recordingSeconds % 60;
             document.getElementById('recTimer').textContent = `${min}:${sec.toString().padStart(2, '0')}`;
         }, 1000);
-    }).catch(() => alert('Microphone access denied.'));
+
+        // Slide-to-cancel setup
+        setupSlideToCancel(indicator);
+    }).catch(() => showToast('Microphone access denied'));
 }
 
-function stopRecording(e) {
-    if (e) e.preventDefault();
-    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+function stopRecordingAndSend() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+    }
+}
+
+function cancelRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.ondataavailable = null;
+        mediaRecorder.onstop = () => {
+            mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            cleanupRecordingUI();
+        };
+        mediaRecorder.stop();
+    }
+    audioChunks = [];
+}
+
+function cleanupRecordingUI() {
+    isRecording = false;
+    if (recordingTimer) { clearInterval(recordingTimer); recordingTimer = null; }
+    const micBtn = document.getElementById('micBtn');
+    micBtn.innerHTML = '&#127908;';
+    micBtn.classList.remove('recording');
+    document.getElementById('recordingIndicator').style.display = 'none';
+    document.getElementById('recordingIndicator').style.transform = '';
+    document.getElementById('recordingIndicator').style.opacity = '';
+}
+
+function setupSlideToCancel(indicator) {
+    let startX = 0;
+    let swiping = false;
+
+    const onTouchStart = (e) => {
+        startX = e.touches[0].clientX;
+        swiping = true;
+    };
+
+    const onTouchMove = (e) => {
+        if (!swiping || !isRecording) return;
+        const diff = startX - e.touches[0].clientX;
+        if (diff > 0) {
+            const progress = Math.min(diff / 150, 1);
+            indicator.style.transform = `translateX(-${diff}px)`;
+            indicator.style.opacity = 1 - (progress * 0.6);
+        }
+    };
+
+    const onTouchEnd = (e) => {
+        if (!swiping) return;
+        swiping = false;
+        const endX = e.changedTouches[0].clientX;
+        const diff = startX - endX;
+
+        if (diff > 100) {
+            cancelRecording();
+        } else {
+            indicator.style.transform = '';
+            indicator.style.opacity = '';
+        }
+
+        indicator.removeEventListener('touchstart', onTouchStart);
+        indicator.removeEventListener('touchmove', onTouchMove);
+        indicator.removeEventListener('touchend', onTouchEnd);
+    };
+
+    indicator.addEventListener('touchstart', onTouchStart, { passive: true });
+    indicator.addEventListener('touchmove', onTouchMove, { passive: true });
+    indicator.addEventListener('touchend', onTouchEnd);
 }
 
 document.getElementById('micBtn').addEventListener('contextmenu', e => e.preventDefault());
