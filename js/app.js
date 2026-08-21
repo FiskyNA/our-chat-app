@@ -380,20 +380,17 @@ function formatLastSeen(timestamp) {
     return 'last seen ' + dateStr + ' at ' + timeStr;
 }
 
+let lastMessageTimestamp = null;
+
 function updateHeaderStatus(data) {
     const statusEl = document.getElementById('headerStatus');
     if (!statusEl) return;
-
-    if (!data) {
-        statusEl.textContent = '';
-        return;
-    }
 
     const hour = new Date().getHours();
     const isSneakyHours = hour >= 22 || hour < 4;
 
     // After 10PM: only when wifey views hubby — hide online if last message >1 min ago
-    if (isSneakyHours && currentUser === 'wifeyy' && data.lastMessageTime) {
+    if (isSneakyHours && currentUser === 'wifeyy' && data && data.lastMessageTime) {
         const msgTime = data.lastMessageTime.toDate ? data.lastMessageTime.toDate() : new Date(data.lastMessageTime);
         const minsSinceMsg = (Date.now() - msgTime.getTime()) / 60000;
         if (minsSinceMsg > 1) {
@@ -403,9 +400,8 @@ function updateHeaderStatus(data) {
     }
 
     // Show "online" if lastSeen is less than 60 seconds ago
-    const lastSeenTime = data.lastSeen;
-    if (lastSeenTime) {
-        const ts = lastSeenTime.toDate ? lastSeenTime.toDate() : new Date(lastSeenTime);
+    if (data && data.lastSeen) {
+        const ts = data.lastSeen.toDate ? data.lastSeen.toDate() : new Date(data.lastSeen);
         const secsSince = (Date.now() - ts.getTime()) / 1000;
         if (secsSince < 60) {
             statusEl.textContent = 'online';
@@ -413,10 +409,16 @@ function updateHeaderStatus(data) {
         }
     }
 
-    // Otherwise show last seen
-    const displayTimestamp = getSneakyTimestamp(data);
+    // Use sneaky timestamp if available
+    const displayTimestamp = data ? getSneakyTimestamp(data) : null;
     if (displayTimestamp) {
         statusEl.textContent = formatLastSeen(displayTimestamp);
+        return;
+    }
+
+    // Fallback: use last message timestamp from messages
+    if (lastMessageTimestamp) {
+        statusEl.textContent = formatLastSeen(lastMessageTimestamp);
     }
 }
 
@@ -451,6 +453,13 @@ db.collection('messages')
         const wasAtBottom = messagesArea.scrollHeight - messagesArea.scrollTop <= messagesArea.clientHeight + 100;
 
         const currentIds = snapshot.docs.map(d => d.id);
+
+        // Track last message timestamp for header status fallback
+        if (snapshot.docs.length > 0) {
+            const lastDoc = snapshot.docs[snapshot.docs.length - 1];
+            const lastMsg = lastDoc.data();
+            lastMessageTimestamp = lastMsg.timestamp;
+        }
 
         // Remove deleted messages
         lastRenderedIds.forEach(id => {
