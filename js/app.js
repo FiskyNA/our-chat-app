@@ -1552,6 +1552,11 @@ document.getElementById('messagesArea').addEventListener('scroll', function() {
 initTyping();
 watchTyping();
 
+// Register service worker for mobile notifications
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
 // ===== SEARCH =====
 function toggleSearch() {
     const bar = document.getElementById('searchBar');
