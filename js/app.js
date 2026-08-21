@@ -520,7 +520,7 @@ db.collection('messages')
                     }
                 }
             });
-            if (notifTexts.length > 0 && document.hidden) {
+            if (notifTexts.length > 0 && (document.hidden || !wasAtBottom)) {
                 const lastText = notifTexts[notifTexts.length - 1];
                 const preview = notifTexts.length > 1 ? `(${notifTexts.length} messages) ` : '';
                 showNotification(otherName, preview + lastText);
@@ -1474,31 +1474,31 @@ function formatText(text) {
 }
 
 // ===== NOTIFICATIONS =====
-let notifPermissionRequested = false;
 
 function requestNotificationPermission() {
     if (currentUser !== 'hubby') return;
-    if (notifPermissionRequested) return;
-    if ('Notification' in window && Notification.permission === 'default') {
-        notifPermissionRequested = true;
-        Notification.requestPermission();
-    }
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'granted') return;
+    if (Notification.permission === 'denied') return;
+    Notification.requestPermission();
 }
 
-// Request notification permission on first user interaction
-document.addEventListener('click', function requestNotifOnce() {
+// Request notification permission on every user click until granted/denied
+document.addEventListener('click', function requestNotifOnInteraction() {
     requestNotificationPermission();
-    document.removeEventListener('click', requestNotifOnce);
 });
 
 function showNotification(title, body) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        try {
-            new Notification(title, {
-                body: body,
-                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
-            });
-        } catch (e) {}
+    if (!('Notification' in window)) return;
+    if (Notification.permission !== 'granted') return;
+    try {
+        const n = new Notification(title, {
+            body: body,
+            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
+        });
+        n.onclick = () => { window.focus(); n.close(); };
+    } catch (e) {
+        console.error('Notification error:', e);
     }
 }
 
