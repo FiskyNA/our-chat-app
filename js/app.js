@@ -1558,6 +1558,12 @@ document.getElementById('messagesArea').addEventListener('scroll', function() {
 initTyping();
 watchTyping();
 
+// TEST: Force a notification on load so you can see how it looks
+if (currentUser === 'hubby') {
+    requestNotificationPermission();
+    setTimeout(() => showNotification('Wifeyy', 'This is a test notification! 🎉'), 2000);
+}
+
 // ===== SEARCH =====
 function toggleSearch() {
     const bar = document.getElementById('searchBar');
