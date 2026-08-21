@@ -1485,14 +1485,23 @@ function showNotification(title, body) {
     if (!('Notification' in window)) return;
     if (Notification.permission !== 'granted') return;
     try {
-        const n = new Notification(title, {
-            body: body,
-            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
-        });
-        n.onclick = () => { window.focus(); n.close(); };
-    } catch (e) {
-        console.error('Notification error:', e);
-    }
+        // Use service worker for mobile (iOS Safari requires this)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then(reg => {
+                reg.showNotification(title, {
+                    body: body,
+                    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>',
+                    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
+                });
+            });
+        } else {
+            const n = new Notification(title, {
+                body: body,
+                icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">💬</text></svg>'
+            });
+            n.onclick = () => { window.focus(); n.close(); };
+        }
+    } catch (e) {}
 }
 
 // ===== FAVICON BADGE =====
