@@ -507,8 +507,8 @@ db.collection('messages')
         // Mark received messages as read
         markMessagesAsRead(snapshot);
 
-        // Show notification for every new message from other user (hubby only)
-        if (currentUser === 'hubby' && newIds.length > 0) {
+        // Show notification for new messages from other user (hubby only)
+        if (currentUser === 'hubby' && newIds.length > 0 && !firstLoad) {
             newIds.forEach(id => {
                 const doc = snapshot.docs.find(d => d.id === id);
                 if (doc) {
