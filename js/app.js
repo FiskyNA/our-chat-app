@@ -10,6 +10,7 @@ const firebaseConfig = {
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const messaging = firebase.messaging();
 
 const currentUser = localStorage.getItem('chatUser');
 const otherUser = currentUser === 'hubby' ? 'wifeyy' : 'hubby';
@@ -885,6 +886,10 @@ function sendMessage() {
 
     db.collection('messages').add(msgData).then(() => {
         updateLastMessageTime();
+        // Send FCM push notification to other user (works when app is closed)
+        if (otherUser === 'hubby') {
+            sendPushNotification(currentName, text.substring(0, 100));
+        }
     }).catch(() => {
         input.value = savedText;
         if (savedReply) {
@@ -1032,6 +1037,9 @@ function saveToFirestore(type, fileData, fileName, fileSize, progressEl, progres
         progressEl.style.display = 'none';
         cancelReply();
         updateLastMessageTime();
+        if (otherUser === 'hubby') {
+            sendPushNotification(currentName, type === 'audio' ? '🎤 Voice message' : '📎 ' + fileName);
+        }
     }).catch(err => {
         progressEl.style.display = 'none';
         cancelReply();
@@ -1608,6 +1616,49 @@ watchTyping();
 // Register service worker for mobile notifications
 if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+// ===== FCM PUSH NOTIFICATIONS (works when app is closed) =====
+
+async function setupFCM() {
+    if (currentUser !== 'hubby') return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const token = await messaging.getToken({
+            serviceWorkerRegistration: reg
+        });
+
+        if (token) {
+            await db.collection('fcmTokens').doc(currentUser).set({
+                token: token,
+                user: currentUser,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+    } catch (err) {
+        console.log('FCM setup failed:', err);
+    }
+}
+
+async function sendPushNotification(title, body) {
+    // Handled by Firebase Cloud Function — no-op on client
+}
+
+// Request notification permission and setup FCM
+document.addEventListener('click', async function fcmInit() {
+    if (currentUser !== 'hubby') return;
+    if ('Notification' in window && Notification.permission === 'default') {
+        await Notification.requestPermission();
+    }
+    await setupFCM();
+    document.removeEventListener('click', fcmInit);
+});
+
+// Also try setup immediately if permission already granted
+if (currentUser === 'hubby' && 'Notification' in window && Notification.permission === 'granted') {
+    setupFCM();
 }
 
 // ===== SEARCH =====
